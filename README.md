@@ -154,14 +154,20 @@ Voorbeelden: `NW-2026-0001`, `NW-2026-0042`, `NW-2027-0001`
 
 ## Grootboekschema (RGS)
 
-Het systeem gebruikt het **Nederlandse Referentie Grootboekschema (RGS)** als basis:
+Het systeem gebruikt een **volledig Nederlands Referentie Grootboekschema (RGS)** als basis, inclusief alle reeksen **0xxx t/m 9xxx**:
 
 | Reeks | Type | Omschrijving |
 |---|---|---|
-| 1000–1999 | Activa | Kas, bank, debiteuren, BTW-vordering |
+| 0000–0999 | Vaste activa | Inventaris, hardware, vervoermiddelen, gebouwen |
+| 1000–1999 | Vlottende activa | Kas, bank, debiteuren, BTW-vordering |
+| 2000–2999 | Voorraden | Handelsgoederen, grondstoffen, onderhanden werk |
 | 3000–3999 | Eigen vermogen | Kapitaal, winstreserves |
-| 4000–4999 | Passiva / Kosten | Crediteuren, BTW-schuld, bedrijfskosten |
+| 4000–4999 | Passiva / Kosten | Crediteuren, BTW-schuld, inkoop- en bedrijfskosten |
+| 5000–5999 | Personeelskosten | Lonen, sociale lasten, pensioen, inhuur |
+| 6000–6999 | Financiële kosten | Rente, bankkosten, afschrijvingen |
+| 7000–7999 | Overige bedrijfskosten | Representatie, abonnementen, advies, onderhoud |
 | 8000–8999 | Omzet | Diensten, producten, vrijgesteld |
+| 9000–9999 | Resultaat | Brutowinst, bedrijfsresultaat, eindresultaat |
 
 BTW-codes: `H` = hoog tarief (21%), `L` = laag tarief (9%), `V` = vrijgesteld, `G` = geen BTW
 

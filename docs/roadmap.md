@@ -8,7 +8,8 @@ Overzicht van geplande en voltooide functionaliteit voor **Natuurwaarnemer ERP**
 
 De kernfunctionaliteit voor facturatie, kosten en boekhouding.
 
-- [ ] SQLite database schema
+- [x] SQLite database schema
+- [x] Volledig Nederlands RGS grootboekschema (0xxx–9xxx)
 - [ ] HA invoerscherm facturen
 - [ ] n8n factuurflow
 - [ ] PDF generatie via Gotenberg
