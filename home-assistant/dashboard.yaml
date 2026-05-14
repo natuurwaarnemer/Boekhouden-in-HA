@@ -132,8 +132,26 @@ views:
           Hier komen de rapportage-kaarten zodra de grootboekflow actief is.
           Gebruik de n8n `/grootboek-rapport?periode=JJJJ-MM` webhook voor live data.
 
-          **Tip:** Gebruik een `rest` sensor in Home Assistant om de n8n rapportage-webhook
-          periodiek op te vragen en de waarden hier te tonen.
+          **Tip:** Voeg onderstaande `rest` sensor toe aan `configuration.yaml` om
+          de n8n rapportage-webhook periodiek op te vragen:
+
+          ```yaml
+          sensor:
+            - platform: rest
+              name: erp_rapport
+              resource: "http://n8n:5678/webhook/grootboek-rapport"
+              params:
+                periode: "{{ now().strftime('%Y-%m') }}"
+              value_template: "{{ value_json.omzet }}"
+              json_attributes:
+                - omzet
+                - kosten
+                - winst
+                - btw_te_betalen
+              scan_interval: 3600
+          ```
+
+          Daarna zijn `sensor.erp_rapport` attributen beschikbaar voor de kaarten hieronder.
 
       - type: statistic
         entity: sensor.erp_omzet_maand

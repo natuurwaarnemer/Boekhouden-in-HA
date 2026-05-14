@@ -14,6 +14,54 @@ input_select:
       - "--- Selecteer klant ---"
     icon: mdi:account
 
+  factuur_regel1_btw:
+    name: "Regel 1 — BTW %"
+    options:
+      - "21"
+      - "9"
+      - "0"
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel2_btw:
+    name: "Regel 2 — BTW %"
+    options:
+      - "21"
+      - "9"
+      - "0"
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel3_btw:
+    name: "Regel 3 — BTW %"
+    options:
+      - "21"
+      - "9"
+      - "0"
+    initial: "21"
+    icon: mdi:percent
+
+  kosten_btw:
+    name: "BTW %"
+    options:
+      - "21"
+      - "9"
+      - "0"
+    initial: "21"
+    icon: mdi:percent
+
+  kosten_grootboek:
+    name: Grootboekrekening
+    options:
+      - "4400 Inkoopkosten"
+      - "4410 Kantoorkosten"
+      - "4420 Reiskosten"
+      - "4430 Marketing"
+      - "4440 Automatiseringskosten"
+      - "4450 Verzekeringen"
+      - "4460 Telefoon en internet"
+    icon: mdi:book-open-variant
+
 # ---------------------------------------------------------
 # Factuur — Tekstvelden
 # ---------------------------------------------------------
@@ -133,64 +181,6 @@ input_number:
     step: 0.01
     unit_of_measurement: "€"
     icon: mdi:currency-eur
-
-# ---------------------------------------------------------
-# Factuur — BTW-selectie per regel
-# ---------------------------------------------------------
-# (valt onder input_select samen met factuur_klant)
-# Zie hieronder voor de volledige input_select uitbreiding:
-#
-#  factuur_regel1_btw:
-#    options: ['21', '9', '0']
-#  factuur_regel2_btw:
-#    options: ['21', '9', '0']
-#  factuur_regel3_btw:
-#    options: ['21', '9', '0']
-#  kosten_btw:
-#    options: ['21', '9', '0']
-#  kosten_grootboek:
-#    options: [...]
-#
-# Deze zijn hieronder toegevoegd als uitbreiding van input_select:
-
-# ---------------------------------------------------------
-# Kosten & BTW selects (uitbreiding input_select sectie)
-# ---------------------------------------------------------
-# Voeg deze opties samen met de bovenstaande input_select sectie.
-# In YAML mag je de sectie niet herhalen; voeg onderstaande toe
-# aan de bestaande input_select: sectie hierboven.
-#
-# factuur_regel1_btw:
-#   name: "Regel 1 — BTW %"
-#   options: ['21', '9', '0']
-#   icon: mdi:percent
-#
-# factuur_regel2_btw:
-#   name: "Regel 2 — BTW %"
-#   options: ['21', '9', '0']
-#   icon: mdi:percent
-#
-# factuur_regel3_btw:
-#   name: "Regel 3 — BTW %"
-#   options: ['21', '9', '0']
-#   icon: mdi:percent
-#
-# kosten_btw:
-#   name: "BTW %"
-#   options: ['21', '9', '0']
-#   icon: mdi:percent
-#
-# kosten_grootboek:
-#   name: Grootboekrekening
-#   options:
-#     - '4400 Inkoopkosten'
-#     - '4410 Kantoorkosten'
-#     - '4420 Reiskosten'
-#     - '4430 Marketing'
-#     - '4440 Automatiseringskosten'
-#     - '4450 Verzekeringen'
-#     - '4460 Telefoon en internet'
-#   icon: mdi:book-open-variant
 
 # ---------------------------------------------------------
 # Knoppen

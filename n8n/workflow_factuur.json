@@ -33,13 +33,31 @@
       }
     },
     {
+      "id": "node_get_settings",
+      "name": "SQLite: Instellingen ophalen",
+      "type": "n8n-nodes-base.sqlite",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT key, value FROM settings WHERE key IN ('invoice_prefix','invoice_year','invoice_counter')",
+        "options": {}
+      },
+      "credentials": {
+        "sqlite": {
+          "id": "sqlite_cred",
+          "name": "SQLite — gippetto.db"
+        }
+      }
+    },
+    {
       "id": "node_generate_number",
       "name": "Function: Factuurnummer genereren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [680, 300],
+      "position": [900, 300],
       "parameters": {
-        "functionCode": "// Lees huidige teller en jaar uit de vorige node of database\nconst body = $('Webhook: Factuur aanmaken').first().json.body;\nconst customer = $input.first().json;\n\n// Haal instellingen op uit database (zie SQLite node hiervoor)\n// Hier gesimuleerd — in productie via extra SQLite node\nconst prefix = 'NW';\nconst currentYear = new Date().getFullYear().toString();\n\n// Verhoog teller (gesimuleerd; in productie via UPDATE in SQLite)\nlet counter = parseInt($node['SQLite: Instellingen ophalen']?.json?.invoice_counter || '0') + 1;\n\n// Reset bij jaarwisseling\nconst storedYear = $node['SQLite: Instellingen ophalen']?.json?.invoice_year || currentYear;\nif (storedYear !== currentYear) {\n  counter = 1;\n}\n\n// Formatteer als NW-YYYY-NNNN\nconst paddedCounter = String(counter).padStart(4, '0');\nconst invoiceNumber = `${prefix}-${currentYear}-${paddedCounter}`;\n\nreturn [{\n  json: {\n    invoice_number: invoiceNumber,\n    counter: counter,\n    year: currentYear,\n    customer: customer,\n    body: body\n  }\n}];"
+        "functionCode": "// Lees klantdata en webhook body uit eerdere nodes\nconst body = $('Webhook: Factuur aanmaken').first().json.body;\nconst customer = $('SQLite: Klant ophalen').first().json;\n\n// Zet instellingen om van rijen naar key-value object\nconst settingsRows = $('SQLite: Instellingen ophalen').all().map(i => i.json);\nconst settings = {};\nfor (const row of settingsRows) {\n  settings[row.key] = row.value;\n}\n\nconst prefix = settings.invoice_prefix || 'NW';\nconst currentYear = new Date().getFullYear().toString();\nconst storedYear = settings.invoice_year || currentYear;\n\n// Reset teller bij jaarwisseling, anders ophogen\nlet counter = parseInt(settings.invoice_counter || '0') + 1;\nif (storedYear !== currentYear) {\n  counter = 1;\n}\n\n// Formatteer als NW-YYYY-NNNN\nconst paddedCounter = String(counter).padStart(4, '0');\nconst invoiceNumber = `${prefix}-${currentYear}-${paddedCounter}`;\n\nreturn [{\n  json: {\n    invoice_number: invoiceNumber,\n    counter: counter,\n    year: currentYear,\n    customer: customer,\n    body: body\n  }\n}];"
       }
     },
     {
@@ -124,13 +142,23 @@
     },
     {
       "id": "node_insert_items",
-      "name": "SQLite: Factuurregels invoegen",
-      "type": "n8n-nodes-base.sqlite",
+      "name": "Function: Factuurregels SQL opbouwen",
+      "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [1780, 380],
       "parameters": {
+        "functionCode": "const data = $('Function: BTW berekenen en data samenvoegen').first().json;\nconst regels = data.regels || [];\n\n// Bouw INSERT statements voor alle regels\nconst queries = regels.map(r =>\n  `INSERT INTO invoice_items (invoice_id, description, qty, unit_price, btw_percentage, btw_amount, line_total) ` +\n  `SELECT id, '${r.omschrijving.replace(/'/g, \"''\")}', ${r.aantal}, ${r.prijs}, ${r.btw_percentage}, ${r.btw_bedrag}, ${r.regel_totaal} ` +\n  `FROM invoices WHERE invoice_number = '${data.invoice_number}'`\n);\n\nreturn [{ json: { ...data, item_queries: queries } }];"
+      }
+    },
+    {
+      "id": "node_insert_items_exec",
+      "name": "SQLite: Factuurregels invoegen",
+      "type": "n8n-nodes-base.sqlite",
+      "typeVersion": 1,
+      "position": [2000, 380],
+      "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO invoice_items (invoice_id, description, qty, unit_price, btw_percentage, btw_amount, line_total) SELECT id, '{{ $json.regels[0].omschrijving }}', {{ $json.regels[0].aantal }}, {{ $json.regels[0].prijs }}, {{ $json.regels[0].btw_percentage }}, {{ $json.regels[0].btw_bedrag }}, {{ $json.regels[0].regel_totaal }} FROM invoices WHERE invoice_number = '{{ $json.invoice_number }}'",
+        "query": "={{ $json.item_queries.join(';\\n') }}",
         "options": {}
       },
       "credentials": {
@@ -198,6 +226,9 @@
       "main": [[{ "node": "SQLite: Klant ophalen", "type": "main", "index": 0 }]]
     },
     "SQLite: Klant ophalen": {
+      "main": [[{ "node": "SQLite: Instellingen ophalen", "type": "main", "index": 0 }]]
+    },
+    "SQLite: Instellingen ophalen": {
       "main": [[{ "node": "Function: Factuurnummer genereren", "type": "main", "index": 0 }]]
     },
     "Function: Factuurnummer genereren": {
@@ -215,9 +246,12 @@
     "Write Binary File: PDF opslaan": {
       "main": [[
         { "node": "SQLite: Factuur invoegen", "type": "main", "index": 0 },
-        { "node": "SQLite: Factuurregels invoegen", "type": "main", "index": 0 },
+        { "node": "Function: Factuurregels SQL opbouwen", "type": "main", "index": 0 },
         { "node": "SQLite: Grootboekboekingen", "type": "main", "index": 0 }
       ]]
+    },
+    "Function: Factuurregels SQL opbouwen": {
+      "main": [[{ "node": "SQLite: Factuurregels invoegen", "type": "main", "index": 0 }]]
     },
     "SQLite: Factuurregels invoegen": {
       "main": [[{ "node": "Send Email: Factuur versturen", "type": "main", "index": 0 }]]
