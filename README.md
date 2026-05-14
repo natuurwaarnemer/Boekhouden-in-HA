@@ -162,7 +162,7 @@ Het systeem gebruikt het **volledige Nederlandse Referentie Grootboekschema (RGS
 | 1000–1999 | Vlottende activa | Kas, bank, debiteuren, BTW-vorderingen |
 | 2000–2999 | Voorraden | Handelsgoederen, grondstoffen, onderhanden werk |
 | 3000–3999 | Eigen vermogen | Kapitaal, winstreserves |
-| 4000–4999 | Passiva / Kosten | Crediteuren, BTW-schuld, inkoop- en bedrijfskosten |
+| 4000–4999 | Kortlopende schulden en inkoopkosten | Crediteuren, BTW-schuld, inkoop- en bedrijfskosten |
 | 5000–5999 | Personeelskosten | Lonen, sociale lasten, pensioen, inhuur |
 | 6000–6999 | Financiële kosten | Rente, bankkosten, afschrijvingen |
 | 7000–7999 | Overige bedrijfskosten | Representatie, abonnementen, advies, onderhoud |
