@@ -1,0 +1,205 @@
+# =============================================================
+# Natuurwaarnemer ERP — Home Assistant Input Helpers
+# =============================================================
+# Voeg deze sectie toe aan configuration.yaml of een aparte
+# includes/input_helpers.yaml die je includeert.
+
+# ---------------------------------------------------------
+# Factuur — Klant & Project
+# ---------------------------------------------------------
+input_select:
+  factuur_klant:
+    name: Klant
+    options:
+      - "--- Selecteer klant ---"
+    icon: mdi:account
+
+# ---------------------------------------------------------
+# Factuur — Tekstvelden
+# ---------------------------------------------------------
+input_text:
+  factuur_project:
+    name: Project / Referentie
+    max: 100
+    icon: mdi:briefcase
+
+  factuur_regel1_omschrijving:
+    name: "Regel 1 — Omschrijving"
+    max: 200
+    icon: mdi:text
+
+  factuur_regel2_omschrijving:
+    name: "Regel 2 — Omschrijving"
+    max: 200
+    icon: mdi:text
+
+  factuur_regel3_omschrijving:
+    name: "Regel 3 — Omschrijving"
+    max: 200
+    icon: mdi:text
+
+  factuur_notities:
+    name: Notities
+    max: 500
+    icon: mdi:note-text
+
+  factuur_status:
+    name: Factuur Status
+    initial: "Klaar"
+    max: 200
+    icon: mdi:information
+
+  kosten_leverancier:
+    name: Leverancier
+    max: 100
+    icon: mdi:store
+
+  kosten_omschrijving:
+    name: Omschrijving
+    max: 200
+    icon: mdi:text
+
+  kosten_datum:
+    name: Datum (JJJJ-MM-DD)
+    max: 10
+    initial: ""
+    icon: mdi:calendar
+
+  kosten_status:
+    name: Kosten Status
+    initial: "Klaar"
+    max: 200
+    icon: mdi:information
+
+# ---------------------------------------------------------
+# Factuur — Getallen (aantallen & prijzen)
+# ---------------------------------------------------------
+input_number:
+  factuur_regel1_aantal:
+    name: "Regel 1 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+
+  factuur_regel1_prijs:
+    name: "Regel 1 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  factuur_regel2_aantal:
+    name: "Regel 2 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+
+  factuur_regel2_prijs:
+    name: "Regel 2 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  factuur_regel3_aantal:
+    name: "Regel 3 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+
+  factuur_regel3_prijs:
+    name: "Regel 3 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  kosten_bedrag:
+    name: Bedrag (excl. BTW)
+    min: 0
+    max: 999999
+    step: 0.01
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+# ---------------------------------------------------------
+# Factuur — BTW-selectie per regel
+# ---------------------------------------------------------
+# (valt onder input_select samen met factuur_klant)
+# Zie hieronder voor de volledige input_select uitbreiding:
+#
+#  factuur_regel1_btw:
+#    options: ['21', '9', '0']
+#  factuur_regel2_btw:
+#    options: ['21', '9', '0']
+#  factuur_regel3_btw:
+#    options: ['21', '9', '0']
+#  kosten_btw:
+#    options: ['21', '9', '0']
+#  kosten_grootboek:
+#    options: [...]
+#
+# Deze zijn hieronder toegevoegd als uitbreiding van input_select:
+
+# ---------------------------------------------------------
+# Kosten & BTW selects (uitbreiding input_select sectie)
+# ---------------------------------------------------------
+# Voeg deze opties samen met de bovenstaande input_select sectie.
+# In YAML mag je de sectie niet herhalen; voeg onderstaande toe
+# aan de bestaande input_select: sectie hierboven.
+#
+# factuur_regel1_btw:
+#   name: "Regel 1 — BTW %"
+#   options: ['21', '9', '0']
+#   icon: mdi:percent
+#
+# factuur_regel2_btw:
+#   name: "Regel 2 — BTW %"
+#   options: ['21', '9', '0']
+#   icon: mdi:percent
+#
+# factuur_regel3_btw:
+#   name: "Regel 3 — BTW %"
+#   options: ['21', '9', '0']
+#   icon: mdi:percent
+#
+# kosten_btw:
+#   name: "BTW %"
+#   options: ['21', '9', '0']
+#   icon: mdi:percent
+#
+# kosten_grootboek:
+#   name: Grootboekrekening
+#   options:
+#     - '4400 Inkoopkosten'
+#     - '4410 Kantoorkosten'
+#     - '4420 Reiskosten'
+#     - '4430 Marketing'
+#     - '4440 Automatiseringskosten'
+#     - '4450 Verzekeringen'
+#     - '4460 Telefoon en internet'
+#   icon: mdi:book-open-variant
+
+# ---------------------------------------------------------
+# Knoppen
+# ---------------------------------------------------------
+input_button:
+  factuur_genereer:
+    name: Factuur Genereren
+    icon: mdi:file-document-plus
+
+  kosten_opslaan:
+    name: Kosten Opslaan
+    icon: mdi:content-save

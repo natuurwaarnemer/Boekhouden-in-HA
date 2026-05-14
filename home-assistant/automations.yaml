@@ -1,0 +1,99 @@
+# =============================================================
+# Natuurwaarnemer ERP — Home Assistant Automations
+# =============================================================
+# Voeg deze automations toe aan /config/automations.yaml
+# Vereist entries in secrets.yaml:
+#   n8n_webhook_factuur: "http://n8n:5678/webhook/factuur-aanmaken"
+#   n8n_webhook_kosten:  "http://n8n:5678/webhook/kosten-opslaan"
+#
+# Voeg ook de rest_command sectie toe aan configuration.yaml:
+# ---------------------------------------------------------
+# rest_command:
+#   n8n_factuur_webhook:
+#     url: !secret n8n_webhook_factuur
+#     method: POST
+#     content_type: application/json
+#     payload: >
+#       {
+#         "klant":        "{{ states('input_select.factuur_klant') }}",
+#         "project":      "{{ states('input_text.factuur_project') }}",
+#         "omschrijving1":"{{ states('input_text.factuur_regel1_omschrijving') }}",
+#         "aantal1":      {{ states('input_number.factuur_regel1_aantal') }},
+#         "prijs1":       {{ states('input_number.factuur_regel1_prijs') }},
+#         "btw1":         "{{ states('input_select.factuur_regel1_btw') }}",
+#         "omschrijving2":"{{ states('input_text.factuur_regel2_omschrijving') }}",
+#         "aantal2":      {{ states('input_number.factuur_regel2_aantal') }},
+#         "prijs2":       {{ states('input_number.factuur_regel2_prijs') }},
+#         "btw2":         "{{ states('input_select.factuur_regel2_btw') }}",
+#         "omschrijving3":"{{ states('input_text.factuur_regel3_omschrijving') }}",
+#         "aantal3":      {{ states('input_number.factuur_regel3_aantal') }},
+#         "prijs3":       {{ states('input_number.factuur_regel3_prijs') }},
+#         "btw3":         "{{ states('input_select.factuur_regel3_btw') }}",
+#         "notities":     "{{ states('input_text.factuur_notities') }}"
+#       }
+#
+#   n8n_kosten_webhook:
+#     url: !secret n8n_webhook_kosten
+#     method: POST
+#     content_type: application/json
+#     payload: >
+#       {
+#         "leverancier":  "{{ states('input_text.kosten_leverancier') }}",
+#         "omschrijving": "{{ states('input_text.kosten_omschrijving') }}",
+#         "bedrag":       {{ states('input_number.kosten_bedrag') }},
+#         "btw":          "{{ states('input_select.kosten_btw') }}",
+#         "datum":        "{{ states('input_text.kosten_datum') }}",
+#         "grootboek":    "{{ states('input_select.kosten_grootboek') }}"
+#       }
+# ---------------------------------------------------------
+
+- id: automation_factuur_genereren
+  alias: "ERP: Factuur genereren"
+  description: "Stuur factuurdata naar n8n voor verwerking en PDF-generatie"
+  trigger:
+    - platform: state
+      entity_id: input_button.factuur_genereer
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.factuur_status
+      data:
+        value: "⏳ Bezig met aanmaken..."
+    - service: rest_command.n8n_factuur_webhook
+  mode: single
+
+- id: automation_kosten_opslaan
+  alias: "ERP: Kosten opslaan"
+  description: "Stuur kostendata naar n8n voor opslaan in SQLite en grootboek"
+  trigger:
+    - platform: state
+      entity_id: input_button.kosten_opslaan
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.kosten_status
+      data:
+        value: "⏳ Bezig met opslaan..."
+    - service: rest_command.n8n_kosten_webhook
+  mode: single
+
+- id: automation_erp_bevestiging_ontvangen
+  alias: "ERP: Bevestiging ontvangen"
+  description: "Verwerk bevestiging van n8n na factuur/kosten actie"
+  trigger:
+    - platform: webhook
+      webhook_id: natuurwaarnemer_erp_bevestiging
+      allowed_methods:
+        - POST
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.factuur_status
+      data:
+        value: "{{ trigger.json.bericht }}"
+    - service: persistent_notification.create
+      data:
+        title: "Natuurwaarnemer ERP"
+        message: "{{ trigger.json.bericht }}"
+        notification_id: erp_bevestiging
+  mode: single
