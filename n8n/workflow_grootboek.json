@@ -15,14 +15,24 @@
       }
     },
     {
+      "id": "node_validate_periode",
+      "name": "Function: Periode valideren",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "parameters": {
+        "functionCode": "// Valideer periode-parameter: mag alleen JJJJ-MM formaat zijn\nconst raw = String($input.first().json.query?.periode || '');\nconst isValid = /^\\d{4}-\\d{2}$/.test(raw);\nif (!isValid) {\n  throw new Error(`Ongeldig periode-formaat: '${raw}'. Verwacht formaat: JJJJ-MM (bijv. 2026-05)`);\n}\nreturn [{ json: { periode: raw } }];"
+      }
+    },
+    {
       "id": "node_omzet",
       "name": "SQLite: Omzet ophalen",
       "type": "n8n-nodes-base.sqlite",
       "typeVersion": 1,
-      "position": [460, 180],
+      "position": [680, 180],
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT COALESCE(SUM(credit), 0) as omzet FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'omzet') AND date LIKE '{{ $json.query.periode }}%'",
+        "query": "SELECT COALESCE(SUM(credit), 0) as omzet FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'omzet') AND date LIKE '{{ $json.periode }}%'",
         "options": {}
       },
       "credentials": {
@@ -37,10 +47,10 @@
       "name": "SQLite: Kosten ophalen",
       "type": "n8n-nodes-base.sqlite",
       "typeVersion": 1,
-      "position": [460, 360],
+      "position": [680, 360],
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT COALESCE(SUM(debit), 0) as kosten FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'kosten') AND date LIKE '{{ $json.query.periode }}%'",
+        "query": "SELECT COALESCE(SUM(debit), 0) as kosten FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'kosten') AND date LIKE '{{ $json.periode }}%'",
         "options": {}
       },
       "credentials": {
@@ -55,10 +65,10 @@
       "name": "SQLite: BTW ophalen",
       "type": "n8n-nodes-base.sqlite",
       "typeVersion": 1,
-      "position": [460, 540],
+      "position": [680, 540],
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT COALESCE(SUM(credit), 0) as btw_te_betalen FROM ledger_entries WHERE account_id = (SELECT id FROM ledger_accounts WHERE code = '4500') AND date LIKE '{{ $json.query.periode }}%'",
+        "query": "SELECT COALESCE(SUM(credit), 0) as btw_te_betalen FROM ledger_entries WHERE account_id = (SELECT id FROM ledger_accounts WHERE code = '4500') AND date LIKE '{{ $json.periode }}%'",
         "options": {}
       },
       "credentials": {
@@ -73,9 +83,9 @@
       "name": "Function: Rapport samenvoegen",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [700, 360],
+      "position": [920, 360],
       "parameters": {
-        "functionCode": "// Haal data op uit de drie SQLite nodes\nconst omzetData = $('SQLite: Omzet ophalen').first().json;\nconst kostenData = $('SQLite: Kosten ophalen').first().json;\nconst btwData = $('SQLite: BTW ophalen').first().json;\nconst webhookData = $('Webhook: Grootboek rapport').first().json;\n\nconst omzet = parseFloat(omzetData.omzet || 0);\nconst kosten = parseFloat(kostenData.kosten || 0);\nconst btwTeBetalen = parseFloat(btwData.btw_te_betalen || 0);\nconst winst = Math.round((omzet - kosten) * 100) / 100;\nconst periode = webhookData.query?.periode || new Date().toISOString().slice(0, 7);\n\nreturn [{\n  json: {\n    periode,\n    omzet: Math.round(omzet * 100) / 100,\n    kosten: Math.round(kosten * 100) / 100,\n    winst,\n    btw_te_betalen: Math.round(btwTeBetalen * 100) / 100\n  }\n}];"
+        "functionCode": "const omzetData = $('SQLite: Omzet ophalen').first().json;\nconst kostenData = $('SQLite: Kosten ophalen').first().json;\nconst btwData = $('SQLite: BTW ophalen').first().json;\nconst periode = $('Function: Periode valideren').first().json.periode;\n\nconst omzet = Math.round(parseFloat(omzetData.omzet || 0) * 100) / 100;\nconst kosten = Math.round(parseFloat(kostenData.kosten || 0) * 100) / 100;\nconst btwTeBetalen = Math.round(parseFloat(btwData.btw_te_betalen || 0) * 100) / 100;\nconst winst = Math.round((omzet - kosten) * 100) / 100;\n\nreturn [{ json: { periode, omzet, kosten, winst, btw_te_betalen: btwTeBetalen } }];"
       }
     },
     {
@@ -83,7 +93,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [920, 360],
+      "position": [1140, 360],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
@@ -93,6 +103,9 @@
   ],
   "connections": {
     "Webhook: Grootboek rapport": {
+      "main": [[{ "node": "Function: Periode valideren", "type": "main", "index": 0 }]]
+    },
+    "Function: Periode valideren": {
       "main": [[
         { "node": "SQLite: Omzet ophalen", "type": "main", "index": 0 },
         { "node": "SQLite: Kosten ophalen", "type": "main", "index": 0 },

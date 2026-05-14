@@ -291,7 +291,7 @@ curl -X POST http://localhost:5678/webhook/factuur-aanmaken \
 Verwacht antwoord:
 ```json
 {
-  "succes": true,
+  "success": true,
   "bericht": "Factuur NW-2026-0001 aangemaakt",
   "factuurnummer": "NW-2026-0001"
 }
