@@ -33,7 +33,7 @@
     {
       "id": "node_get_customer",
       "name": "SQLite: Klant ophalen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         680,
@@ -42,19 +42,14 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT * FROM customers WHERE name = '{{ $json.klant }}' LIMIT 1",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     },
     {
       "id": "node_update_counter",
       "name": "SQLite: Teller atomisch ophogen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         900,
@@ -63,13 +58,8 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT) WHERE key = 'invoice_counter' RETURNING value as invoice_counter",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     },
     {
@@ -162,7 +152,7 @@
     {
       "id": "node_insert_invoice",
       "name": "SQLite: Factuur invoegen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         2100,
@@ -171,13 +161,8 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO invoices (invoice_number, customer_id, date, due_date, subtotal, btw_total, total, status, pdf_path, notes) VALUES ('{{ $json.invoice_number }}', {{ $json.customer.id }}, '{{ $json.invoice_date }}', '{{ $json.due_date }}', {{ $json.subtotal }}, {{ $json.btw_total }}, {{ $json.total }}, 'verzonden', '/data/facturen/{{ $json.invoice_number }}.pdf', '{{ $json.body.notities }}')",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     },
     {
@@ -196,7 +181,7 @@
     {
       "id": "node_insert_items",
       "name": "SQLite: Factuurregels invoegen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         2300,
@@ -205,19 +190,14 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "={{ $json.item_queries.join(';\\n') }}",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     },
     {
       "id": "node_ledger",
       "name": "SQLite: Grootboekboekingen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         2100,
@@ -226,13 +206,8 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.invoice_date }}', id, 'Factuur {{ $json.invoice_number }}', {{ $json.total }}, 0, '{{ $json.invoice_number }}', 'VKB' FROM ledger_accounts WHERE code = '1300';\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.invoice_date }}', id, 'Factuur {{ $json.invoice_number }}', 0, {{ $json.subtotal }}, '{{ $json.invoice_number }}', 'VKB' FROM ledger_accounts WHERE code = '8000';\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.invoice_date }}', id, 'BTW Factuur {{ $json.invoice_number }}', 0, {{ $json.btw_total }}, '{{ $json.invoice_number }}', 'VKB' FROM ledger_accounts WHERE code = '4500';",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     },
     {
@@ -278,7 +253,7 @@
     {
       "id": "node_get_company",
       "name": "SQLite: Bedrijfsinstellingen ophalen",
-      "type": "n8n-nodes-base.sqlite",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 1,
       "position": [
         1100,
@@ -287,13 +262,8 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT key, value FROM settings WHERE key = 'company_email'",
-        "options": {}
-      },
-      "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
-        }
+        "options": {},
+        "db_path": "/data/gippetto.db"
       }
     }
   ],
