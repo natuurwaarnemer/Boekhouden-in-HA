@@ -122,7 +122,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "url": "http://localhost:3000/forms/chromium/convert/html",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
