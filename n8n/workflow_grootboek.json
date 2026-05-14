@@ -1,0 +1,221 @@
+{
+  "name": "Natuurwaarnemer ERP — Grootboek rapport",
+  "nodes": [
+    {
+      "id": "node_webhook",
+      "name": "Webhook: Grootboek rapport",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "path": "grootboek-rapport",
+        "httpMethod": "GET",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_validate_periode",
+      "name": "Function: Periode valideren",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "functionCode": "// Valideer periode-parameter: mag alleen JJJJ-MM formaat zijn\nconst raw = String($input.first().json.query?.periode || '');\nconst isValid = /^\\d{4}-\\d{2}$/.test(raw);\nif (!isValid) {\n  throw new Error(`Ongeldig periode-formaat: '${raw}'. Verwacht formaat: JJJJ-MM (bijv. 2026-05)`);\n}\n// Bereken begin- en einddatum voor de maand (veiliger dan LIKE)\nconst [year, month] = raw.split('-').map(Number);\nconst startDate = `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-01`;\nconst nextMonth = month === 12 ? 1 : month + 1;\nconst nextYear = month === 12 ? year + 1 : year;\nconst endDate = `${String(nextYear).padStart(4,'0')}-${String(nextMonth).padStart(2,'0')}-01`;\nreturn [{ json: { periode: raw, start_date: startDate, end_date: endDate } }];"
+      }
+    },
+    {
+      "id": "node_omzet",
+      "name": "SQLite: Omzet ophalen",
+      "type": "n8n-nodes-base.sqlite",
+      "typeVersion": 1,
+      "position": [
+        680,
+        180
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(credit), 0) as omzet FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'omzet') AND date >= '{{ $json.start_date }}' AND date < '{{ $json.end_date }}'",
+        "options": {}
+      },
+      "credentials": {
+        "sqlite": {
+          "id": "sqlite_cred",
+          "name": "SQLite — gippetto.db"
+        }
+      }
+    },
+    {
+      "id": "node_kosten",
+      "name": "SQLite: Kosten ophalen",
+      "type": "n8n-nodes-base.sqlite",
+      "typeVersion": 1,
+      "position": [
+        680,
+        360
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(debit), 0) as kosten FROM ledger_entries WHERE account_id IN (SELECT id FROM ledger_accounts WHERE type = 'kosten') AND date >= '{{ $json.start_date }}' AND date < '{{ $json.end_date }}'",
+        "options": {}
+      },
+      "credentials": {
+        "sqlite": {
+          "id": "sqlite_cred",
+          "name": "SQLite — gippetto.db"
+        }
+      }
+    },
+    {
+      "id": "node_btw",
+      "name": "SQLite: BTW ophalen",
+      "type": "n8n-nodes-base.sqlite",
+      "typeVersion": 1,
+      "position": [
+        680,
+        540
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(credit), 0) as btw_te_betalen FROM ledger_entries WHERE account_id = (SELECT id FROM ledger_accounts WHERE code = '4500') AND date >= '{{ $json.start_date }}' AND date < '{{ $json.end_date }}'",
+        "options": {}
+      },
+      "credentials": {
+        "sqlite": {
+          "id": "sqlite_cred",
+          "name": "SQLite — gippetto.db"
+        }
+      }
+    },
+    {
+      "id": "node_merge",
+      "name": "Function: Rapport samenvoegen",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        920,
+        360
+      ],
+      "parameters": {
+        "functionCode": "const omzetData = $('SQLite: Omzet ophalen').first().json;\nconst kostenData = $('SQLite: Kosten ophalen').first().json;\nconst btwData = $('SQLite: BTW ophalen').first().json;\nconst validated = $('Function: Periode valideren').first().json;\n\nconst omzet = Math.round(parseFloat(omzetData.omzet || 0) * 100) / 100;\nconst kosten = Math.round(parseFloat(kostenData.kosten || 0) * 100) / 100;\nconst btwTeBetalen = Math.round(parseFloat(btwData.btw_te_betalen || 0) * 100) / 100;\nconst winst = Math.round((omzet - kosten) * 100) / 100;\n\nreturn [{ json: { periode: validated.periode, omzet, kosten, winst, btw_te_betalen: btwTeBetalen } }];"
+      }
+    },
+    {
+      "id": "node_respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        360
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Grootboek rapport": {
+      "main": [
+        [
+          {
+            "node": "Function: Periode valideren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function: Periode valideren": {
+      "main": [
+        [
+          {
+            "node": "SQLite: Omzet ophalen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQLite: Kosten ophalen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQLite: BTW ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQLite: Omzet ophalen": {
+      "main": [
+        [
+          {
+            "node": "Function: Rapport samenvoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQLite: Kosten ophalen": {
+      "main": [
+        [
+          {
+            "node": "Function: Rapport samenvoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQLite: BTW ophalen": {
+      "main": [
+        [
+          {
+            "node": "Function: Rapport samenvoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function: Rapport samenvoegen": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "natuurwaarnemer-erp"
+  },
+  "tags": [
+    {
+      "name": "ERP"
+    },
+    {
+      "name": "Rapportage"
+    }
+  ]
+}

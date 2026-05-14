@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factuur {{invoice_number}}</title>
+  <style>
+    /* PDF/Print optimalisatie */
+    @page {
+      margin: 15mm;
+      size: A4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10pt;
+      color: #2c2c2c;
+      background: #ffffff;
+      line-height: 1.5;
+    }
+
+    /* =====================
+       HEADER
+    ===================== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #1a5276;
+    }
+
+    .company-info {
+      flex: 1;
+    }
+
+    .company-name {
+      font-size: 16pt;
+      font-weight: bold;
+      color: #1a5276;
+      margin-bottom: 4px;
+    }
+
+    .company-details {
+      font-size: 9pt;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .invoice-title-block {
+      text-align: right;
+      flex: 0 0 auto;
+    }
+
+    .invoice-title {
+      font-size: 24pt;
+      font-weight: bold;
+      color: #1a5276;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    .invoice-meta {
+      font-size: 9.5pt;
+      color: #444;
+      line-height: 1.8;
+    }
+
+    .invoice-meta strong {
+      color: #1a5276;
+    }
+
+    /* =====================
+       KLANTGEGEVENS
+    ===================== */
+    .billing-section {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .billing-to {
+      flex: 1;
+    }
+
+    .section-label {
+      font-size: 8pt;
+      font-weight: bold;
+      color: #1a5276;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #d5e8f5;
+      padding-bottom: 3px;
+    }
+
+    .billing-to-content {
+      font-size: 10pt;
+      color: #333;
+      line-height: 1.7;
+    }
+
+    /* =====================
+       FACTUURREGELS TABEL
+    ===================== */
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .invoice-table thead tr {
+      background-color: #1a5276;
+      color: #ffffff;
+    }
+
+    .invoice-table thead th {
+      padding: 8px 10px;
+      font-size: 9pt;
+      font-weight: bold;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .invoice-table thead th.right,
+    .invoice-table tbody td.right {
+      text-align: right;
+    }
+
+    .invoice-table tbody tr {
+      border-bottom: 1px solid #e8e8e8;
+    }
+
+    .invoice-table tbody tr:nth-child(even) {
+      background-color: #f7fafc;
+    }
+
+    .invoice-table tbody td {
+      padding: 7px 10px;
+      font-size: 10pt;
+      color: #333;
+      vertical-align: top;
+    }
+
+    /* =====================
+       TOTALEN SECTIE
+    ===================== */
+    .totals-wrapper {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 25px;
+    }
+
+    .totals-table {
+      width: 320px;
+      border-collapse: collapse;
+    }
+
+    .totals-table td {
+      padding: 5px 10px;
+      font-size: 10pt;
+      color: #444;
+    }
+
+    .totals-table .totals-label {
+      text-align: left;
+    }
+
+    .totals-table .totals-value {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+    }
+
+    .totals-table .subtotaal-row td {
+      border-top: 1px solid #d5e8f5;
+      padding-top: 8px;
+      color: #555;
+      font-size: 9.5pt;
+    }
+
+    .totals-table .btw-row td {
+      color: #555;
+      font-size: 9.5pt;
+    }
+
+    .totals-table .total-row td {
+      font-size: 12pt;
+      font-weight: bold;
+      color: #1a5276;
+      border-top: 2px solid #1a5276;
+      border-bottom: 2px solid #1a5276;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      background-color: #eaf3fb;
+    }
+
+    /* =====================
+       BETAALINSTRUCTIES
+    ===================== */
+    .payment-box {
+      background-color: #f0f6fb;
+      border-left: 4px solid #1a5276;
+      padding: 12px 16px;
+      margin-bottom: 25px;
+      font-size: 9.5pt;
+      color: #333;
+      line-height: 1.7;
+    }
+
+    .payment-box strong {
+      color: #1a5276;
+      font-size: 10pt;
+    }
+
+    .payment-box .iban {
+      font-family: 'Courier New', monospace;
+      font-size: 10.5pt;
+      color: #1a5276;
+      font-weight: bold;
+    }
+
+    /* =====================
+       NOTITIES
+    ===================== */
+    .notes-section {
+      margin-bottom: 25px;
+      font-size: 9.5pt;
+      color: #555;
+    }
+
+    /* =====================
+       VOETTEKST
+    ===================== */
+    .footer {
+      border-top: 1px solid #cccccc;
+      padding-top: 10px;
+      font-size: 8pt;
+      color: #888888;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .footer a {
+      color: #1a5276;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="company-info">
+      <div class="company-name">{{company_name}}</div>
+      <div class="company-details">
+        {{company_address}}<br>
+        {{company_postcode}} {{company_city}}<br>
+        KvK: {{company_kvk}}<br>
+        BTW-nr: {{company_btw}}<br>
+        {{company_email}}
+      </div>
+    </div>
+    <div class="invoice-title-block">
+      <div class="invoice-title">FACTUUR</div>
+      <div class="invoice-meta">
+        <strong>Factuurnummer:</strong> {{invoice_number}}<br>
+        <strong>Factuurdatum:</strong> {{invoice_date}}<br>
+        <strong>Vervaldatum:</strong> {{due_date}}
+      </div>
+    </div>
+  </div>
+
+  <!-- KLANTGEGEVENS -->
+  <div class="billing-section">
+    <div class="billing-to">
+      <div class="section-label">Factuur aan</div>
+      <div class="billing-to-content">
+        <strong>{{customer_name}}</strong><br>
+        {{customer_address}}<br>
+        {{customer_postcode}} {{customer_city}}<br>
+        {{customer_email}}
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTUURREGELS TABEL -->
+  <table class="invoice-table">
+    <thead>
+      <tr>
+        <th style="width: 40%;">Omschrijving</th>
+        <th class="right" style="width: 8%;">Aantal</th>
+        <th class="right" style="width: 13%;">Stukprijs</th>
+        <th class="right" style="width: 8%;">BTW%</th>
+        <th class="right" style="width: 13%;">BTW</th>
+        <th class="right" style="width: 18%;">Regeltotaal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{invoice_rows}}
+      <!--
+      Vervang {{invoice_rows}} met gegenereerde <tr>-rijen, bijvoorbeeld:
+      <tr>
+        <td>Omschrijving van de dienst</td>
+        <td class="right">2</td>
+        <td class="right">€ 150,00</td>
+        <td class="right">21%</td>
+        <td class="right">€ 63,00</td>
+        <td class="right">€ 363,00</td>
+      </tr>
+      -->
+    </tbody>
+  </table>
+
+  <!-- TOTALEN -->
+  <div class="totals-wrapper">
+    <table class="totals-table">
+      <tr class="subtotaal-row">
+        <td class="totals-label">Subtotaal excl. BTW</td>
+        <td class="totals-value">€ {{subtotal}}</td>
+      </tr>
+      <tr class="btw-row">
+        <td class="totals-label">BTW 21%</td>
+        <td class="totals-value">€ {{btw_21}}</td>
+      </tr>
+      <tr class="btw-row">
+        <td class="totals-label">BTW 9%</td>
+        <td class="totals-value">€ {{btw_9}}</td>
+      </tr>
+      <tr class="total-row">
+        <td class="totals-label">TOTAAL incl. BTW</td>
+        <td class="totals-value">€ {{total}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- NOTITIES -->
+  <div class="notes-section">
+    <div class="section-label">Opmerkingen</div>
+    {{notes}}
+  </div>
+
+  <!-- BETAALINSTRUCTIES -->
+  <div class="payment-box">
+    <strong>Betaalinstructies</strong><br>
+    Gelieve het bedrag van <strong>€ {{total}}</strong> binnen 30 dagen over te maken op:<br>
+    IBAN: <span class="iban">{{company_iban}}</span><br>
+    t.n.v. {{company_name}}<br>
+    o.v.v. <strong>{{invoice_number}}</strong>
+  </div>
+
+  <!-- VOETTEKST -->
+  <div class="footer">
+    {{company_name}} &nbsp;|&nbsp; KvK: {{company_kvk}} &nbsp;|&nbsp; BTW: {{company_btw}} &nbsp;|&nbsp; IBAN: {{company_iban}} &nbsp;|&nbsp; {{company_email}}
+  </div>
+
+</body>
+</html>
