@@ -144,7 +144,7 @@ input_text:
     icon: mdi:text
   factuur_notities:
     name: Notities
-    max: 500
+    max: 255
     icon: mdi:note-text
   factuur_status:
     name: Factuur Status
@@ -219,7 +219,7 @@ input_text:
     icon: mdi:bank
   klant_notities:
     name: Notities
-    max: 500
+    max: 255
     icon: mdi:note-text
   klant_status:
     name: Klant Status
