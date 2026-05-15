@@ -1,0 +1,483 @@
+# =============================================================
+# Natuurwaarnemer ERP — Home Assistant Package
+# =============================================================
+# Kopieer dit bestand naar /config/packages/erp_input_helpers.yaml
+#
+# Zorg dat in configuration.yaml staat:
+#   homeassistant:
+#     packages: !include_dir_named packages/
+
+# ---------------------------------------------------------
+# INPUT SELECT
+# ---------------------------------------------------------
+input_select:
+
+  factuur_klant:
+    name: Klant
+    options:
+      - "--- Selecteer klant ---"
+    icon: mdi:account
+
+  factuur_grootboek:
+    name: "Grootboekrekening Omzet"
+    options:
+      - "8000 Omzet diensten (21%)"
+      - "8010 Omzet diensten (9%)"
+      - "8020 Omzet diensten vrijgesteld (0%)"
+      - "8100 Omzet producten (21%)"
+      - "8110 Omzet producten (9%)"
+      - "8200 Omzet doorbelaste kosten (21%)"
+      - "8900 Omzet vrijgesteld van BTW (0%)"
+    initial: "8000 Omzet diensten (21%)"
+    icon: mdi:book-open-variant
+
+  factuur_regel1_btw:
+    name: "Regel 1 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel2_btw:
+    name: "Regel 2 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel3_btw:
+    name: "Regel 3 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  inkoop_btw:
+    name: "Inkoop BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  inkoop_grootboek:
+    name: "Grootboekrekening Inkoop"
+    options:
+      - "4000 Inkoopwaarde handelsgoederen (21%)"
+      - "4200 Inkoop diensten / uitbesteding (21%)"
+      - "4300 Inhuur freelancers / ZZP (21%)"
+      - "4410 Kantoorkosten (21%)"
+      - "4420 Reiskosten (0%/21%)"
+      - "4430 Marketing en reclame (21%)"
+      - "4440 Automatisering en software (21%)"
+      - "4450 Verzekeringen (0%)"
+      - "4460 Telefoon en internet (21%)"
+      - "6100 Bankkosten (0%)"
+      - "7000 Representatiekosten (21%)"
+      - "7100 Abonnementen (21%)"
+      - "7200 Advieskosten (21%)"
+      - "7300 Onderhoudskosten (21%)"
+      - "7400 Overige bedrijfskosten (21%)"
+    initial: "4410 Kantoorkosten (21%)"
+    icon: mdi:book-open-variant
+
+  klant_type:
+    name: Klanttype
+    options:
+      - "Zakelijk (B2B)"
+      - "Particulier (B2C)"
+      - "Overheid"
+      - "Non-profit"
+    initial: "Zakelijk (B2B)"
+    icon: mdi:domain
+
+  klant_land:
+    name: Land
+    options:
+      - "Nederland"
+      - "België"
+      - "Duitsland"
+      - "Frankrijk"
+      - "Verenigd Koninkrijk"
+      - "Overig EU"
+      - "Buiten EU"
+    initial: "Nederland"
+    icon: mdi:earth
+
+  kosten_btw:
+    name: "BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  kosten_grootboek:
+    name: Grootboekrekening
+    options:
+      - "4410 Kantoorkosten"
+      - "4420 Reiskosten"
+      - "4430 Marketing"
+      - "4440 Automatiseringskosten"
+      - "4450 Verzekeringen"
+      - "4460 Telefoon en internet"
+      - "6100 Bankkosten"
+      - "7000 Representatiekosten"
+      - "7100 Abonnementen"
+      - "7400 Overige kosten"
+    icon: mdi:book-open-variant
+
+# ---------------------------------------------------------
+# INPUT TEXT
+# ---------------------------------------------------------
+input_text:
+
+  # Verkopen
+  factuur_project:
+    name: Project / Referentie
+    max: 100
+    icon: mdi:briefcase
+  factuur_regel1_omschrijving:
+    name: "Regel 1 — Omschrijving"
+    max: 200
+    icon: mdi:text
+  factuur_regel2_omschrijving:
+    name: "Regel 2 — Omschrijving"
+    max: 200
+    icon: mdi:text
+  factuur_regel3_omschrijving:
+    name: "Regel 3 — Omschrijving"
+    max: 200
+    icon: mdi:text
+  factuur_notities:
+    name: Notities
+    max: 500
+    icon: mdi:note-text
+  factuur_status:
+    name: Factuur Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Inkopen
+  inkoop_leverancier:
+    name: Leverancier
+    max: 100
+    icon: mdi:store
+  inkoop_factuurnummer:
+    name: Factuurnummer leverancier
+    max: 50
+    icon: mdi:pound
+  inkoop_datum:
+    name: "Datum (JJJJ-MM-DD)"
+    max: 10
+    initial: ""
+    icon: mdi:calendar
+  inkoop_omschrijving:
+    name: Omschrijving
+    max: 200
+    icon: mdi:text
+  inkoop_status:
+    name: Inkoop Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Klanten
+  klant_naam:
+    name: Bedrijfsnaam / Naam
+    max: 100
+    icon: mdi:domain
+  klant_contactpersoon:
+    name: Contactpersoon
+    max: 100
+    icon: mdi:account
+  klant_adres:
+    name: Adres
+    max: 150
+    icon: mdi:map-marker
+  klant_postcode:
+    name: Postcode
+    max: 10
+    icon: mdi:mailbox
+  klant_stad:
+    name: Stad
+    max: 100
+    icon: mdi:city
+  klant_email:
+    name: E-mailadres
+    max: 100
+    icon: mdi:email
+  klant_telefoon:
+    name: Telefoonnummer
+    max: 30
+    icon: mdi:phone
+  klant_btwnummer:
+    name: BTW-nummer
+    max: 20
+    icon: mdi:office-building
+  klant_kvknummer:
+    name: KVK-nummer
+    max: 20
+    icon: mdi:card-account-details
+  klant_iban:
+    name: IBAN
+    max: 34
+    icon: mdi:bank
+  klant_notities:
+    name: Notities
+    max: 500
+    icon: mdi:note-text
+  klant_status:
+    name: Klant Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Kosten (legacy)
+  kosten_leverancier:
+    name: Leverancier
+    max: 100
+    icon: mdi:store
+  kosten_omschrijving:
+    name: Omschrijving
+    max: 200
+    icon: mdi:text
+  kosten_datum:
+    name: "Datum (JJJJ-MM-DD)"
+    max: 10
+    initial: ""
+    icon: mdi:calendar
+  kosten_status:
+    name: Kosten Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+# ---------------------------------------------------------
+# INPUT NUMBER
+# ---------------------------------------------------------
+input_number:
+
+  # Verkopen — regels
+  factuur_regel1_aantal:
+    name: "Regel 1 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+  factuur_regel1_prijs:
+    name: "Regel 1 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  factuur_regel2_aantal:
+    name: "Regel 2 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+  factuur_regel2_prijs:
+    name: "Regel 2 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  factuur_regel3_aantal:
+    name: "Regel 3 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    icon: mdi:counter
+  factuur_regel3_prijs:
+    name: "Regel 3 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  # Inkopen
+  inkoop_bedrag:
+    name: "Bedrag (excl. BTW)"
+    min: 0
+    max: 999999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  # Kosten (legacy)
+  kosten_bedrag:
+    name: "Bedrag (excl. BTW)"
+    min: 0
+    max: 999999
+    step: 0.01
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+# ---------------------------------------------------------
+# INPUT BUTTON
+# ---------------------------------------------------------
+input_button:
+  factuur_genereer:
+    name: Factuur Genereren
+    icon: mdi:file-document-plus
+  inkoop_opslaan:
+    name: Inkoop Opslaan
+    icon: mdi:cart-arrow-down
+  klant_opslaan:
+    name: Klant Opslaan
+    icon: mdi:account-plus
+  kosten_opslaan:
+    name: Kosten Opslaan
+    icon: mdi:content-save
+
+# ---------------------------------------------------------
+# TEMPLATE SENSORS — Berekeningen
+# ---------------------------------------------------------
+template:
+  - sensor:
+
+      # ── Regel 1 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel1 Subtotaal"
+        unique_id: erp_factuur_regel1_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel1_aantal') | float(0))
+           * (states('input_number.factuur_regel1_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel1 BTW"
+        unique_id: erp_factuur_regel1_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel1_aantal') | float(0))
+                     * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel1_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Regel 2 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel2 Subtotaal"
+        unique_id: erp_factuur_regel2_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel2_aantal') | float(0))
+           * (states('input_number.factuur_regel2_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel2 BTW"
+        unique_id: erp_factuur_regel2_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel2_aantal') | float(0))
+                     * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel2_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Regel 3 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel3 Subtotaal"
+        unique_id: erp_factuur_regel3_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel3_aantal') | float(0))
+           * (states('input_number.factuur_regel3_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel3 BTW"
+        unique_id: erp_factuur_regel3_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel3_aantal') | float(0))
+                     * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel3_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Factuur Totalen ───────────────────────────────────
+      - name: "ERP Factuur Totaal Excl BTW"
+        unique_id: erp_factuur_totaal_excl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {{ (r1 + r2 + r3) | round(2) }}
+
+      - name: "ERP Factuur Totaal BTW"
+        unique_id: erp_factuur_totaal_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set b1 = r1 * (states('input_select.factuur_regel1_btw') | float(0)) / 100 %}
+          {% set b2 = r2 * (states('input_select.factuur_regel2_btw') | float(0)) / 100 %}
+          {% set b3 = r3 * (states('input_select.factuur_regel3_btw') | float(0)) / 100 %}
+          {{ (b1 + b2 + b3) | round(2) }}
+
+      - name: "ERP Factuur Totaal Incl BTW"
+        unique_id: erp_factuur_totaal_incl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set b1 = r1 * (states('input_select.factuur_regel1_btw') | float(0)) / 100 %}
+          {% set b2 = r2 * (states('input_select.factuur_regel2_btw') | float(0)) / 100 %}
+          {% set b3 = r3 * (states('input_select.factuur_regel3_btw') | float(0)) / 100 %}
+          {{ (r1 + r2 + r3 + b1 + b2 + b3) | round(2) }}
+
+      # ── Inkoop Berekeningen ───────────────────────────────
+      - name: "ERP Inkoop BTW Bedrag"
+        unique_id: erp_inkoop_btw_bedrag
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set bedrag = states('input_number.inkoop_bedrag') | float(0) %}
+          {% set pct = states('input_select.inkoop_btw') | float(0) %}
+          {{ (bedrag * pct / 100) | round(2) }}
+
+      - name: "ERP Inkoop Totaal Incl BTW"
+        unique_id: erp_inkoop_totaal_incl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set bedrag = states('input_number.inkoop_bedrag') | float(0) %}
+          {% set pct = states('input_select.inkoop_btw') | float(0) %}
+          {{ (bedrag * (1 + pct / 100)) | round(2) }}
+
+      # ── Kosten Berekeningen ───────────────────────────────
+      - name: "ERP Kosten BTW Bedrag"
+        unique_id: erp_kosten_btw_bedrag
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set bedrag = states('input_number.kosten_bedrag') | float(0) %}
+          {% set pct = states('input_select.kosten_btw') | float(0) %}
+          {{ (bedrag * pct / 100) | round(2) }}
+
+      - name: "ERP Kosten Totaal Incl BTW"
+        unique_id: erp_kosten_totaal_incl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set bedrag = states('input_number.kosten_bedrag') | float(0) %}
+          {% set pct = states('input_select.kosten_btw') | float(0) %}
+          {{ (bedrag * (1 + pct / 100)) | round(2) }}
