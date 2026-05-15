@@ -5,7 +5,7 @@
 # includes/input_helpers.yaml die je includeert.
 
 # ---------------------------------------------------------
-# Factuur — Klant & Project
+# VERKOPEN — Klant, Project & Grootboek Omzet
 # ---------------------------------------------------------
 input_select:
   factuur_klant:
@@ -13,6 +13,19 @@ input_select:
     options:
       - "--- Selecteer klant ---"
     icon: mdi:account
+
+  factuur_grootboek:
+    name: "Grootboekrekening Omzet"
+    options:
+      - "8000 Omzet diensten (21%)"
+      - "8010 Omzet diensten (9%)"
+      - "8020 Omzet diensten vrijgesteld (0%)"
+      - "8100 Omzet producten (21%)"
+      - "8110 Omzet producten (9%)"
+      - "8200 Omzet doorbelaste kosten (21%)"
+      - "8900 Omzet vrijgesteld van BTW (0%)"
+    initial: "8000 Omzet diensten (21%)"
+    icon: mdi:book-open-variant
 
   factuur_regel1_btw:
     name: "Regel 1 — BTW %"
@@ -41,6 +54,71 @@ input_select:
     initial: "21"
     icon: mdi:percent
 
+# ---------------------------------------------------------
+# INKOPEN — Leverancier, Grootboek & BTW
+# ---------------------------------------------------------
+  inkoop_btw:
+    name: "Inkoop BTW %"
+    options:
+      - "21"
+      - "9"
+      - "0"
+    initial: "21"
+    icon: mdi:percent
+
+  inkoop_grootboek:
+    name: "Grootboekrekening Inkoop"
+    options:
+      - "4000 Inkoopwaarde handelsgoederen (21%)"
+      - "4200 Inkoop diensten / uitbesteding (21%)"
+      - "4300 Inhuur freelancers / ZZP (21%)"
+      - "4410 Kantoorkosten (21%)"
+      - "4420 Reiskosten (0%/21%)"
+      - "4430 Marketing en reclame (21%)"
+      - "4440 Automatisering en software (21%)"
+      - "4450 Verzekeringen (0%)"
+      - "4460 Telefoon en internet (21%)"
+      - "5000 Brutolonen personeel (0%)"
+      - "5100 Sociale lasten (0%)"
+      - "6000 Rente kosten (0%)"
+      - "6100 Bankkosten (0%)"
+      - "7000 Representatiekosten (21%)"
+      - "7100 Abonnementen (21%)"
+      - "7200 Advieskosten (21%)"
+      - "7300 Onderhoudskosten (21%)"
+      - "7400 Overige bedrijfskosten (21%)"
+    initial: "4410 Kantoorkosten (21%)"
+    icon: mdi:book-open-variant
+
+# ---------------------------------------------------------
+# KLANTEN — Type en Land
+# ---------------------------------------------------------
+  klant_type:
+    name: Klanttype
+    options:
+      - "Zakelijk (B2B)"
+      - "Particulier (B2C)"
+      - "Overheid"
+      - "Non-profit"
+    initial: "Zakelijk (B2B)"
+    icon: mdi:domain
+
+  klant_land:
+    name: Land
+    options:
+      - "Nederland"
+      - "België"
+      - "Duitsland"
+      - "Frankrijk"
+      - "Verenigd Koninkrijk"
+      - "Overig EU"
+      - "Buiten EU"
+    initial: "Nederland"
+    icon: mdi:earth
+
+# ---------------------------------------------------------
+# KOSTEN (legacy snelle registratie)
+# ---------------------------------------------------------
   kosten_btw:
     name: "BTW %"
     options:
@@ -53,17 +131,20 @@ input_select:
   kosten_grootboek:
     name: Grootboekrekening
     options:
-      - "4400 Inkoopkosten"
       - "4410 Kantoorkosten"
       - "4420 Reiskosten"
       - "4430 Marketing"
       - "4440 Automatiseringskosten"
       - "4450 Verzekeringen"
       - "4460 Telefoon en internet"
+      - "6100 Bankkosten"
+      - "7000 Representatiekosten"
+      - "7100 Abonnementen"
+      - "7400 Overige kosten"
     icon: mdi:book-open-variant
 
 # ---------------------------------------------------------
-# Factuur — Tekstvelden
+# VERKOPEN — Tekstvelden
 # ---------------------------------------------------------
 input_text:
   factuur_project:
@@ -93,10 +174,107 @@ input_text:
 
   factuur_status:
     name: Factuur Status
-    initial: "Klaar"
+    initial: ""
     max: 200
     icon: mdi:information
 
+# ---------------------------------------------------------
+# INKOPEN — Tekstvelden
+# ---------------------------------------------------------
+  inkoop_leverancier:
+    name: Leverancier
+    max: 100
+    icon: mdi:store
+
+  inkoop_factuurnummer:
+    name: "Factuurnummer leverancier"
+    max: 50
+    icon: mdi:pound
+
+  inkoop_datum:
+    name: "Datum (JJJJ-MM-DD)"
+    max: 10
+    initial: ""
+    icon: mdi:calendar
+
+  inkoop_omschrijving:
+    name: Omschrijving
+    max: 200
+    icon: mdi:text
+
+  inkoop_status:
+    name: Inkoop Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+# ---------------------------------------------------------
+# KLANTEN — Tekstvelden
+# ---------------------------------------------------------
+  klant_naam:
+    name: "Bedrijfsnaam / Naam"
+    max: 100
+    icon: mdi:domain
+
+  klant_contactpersoon:
+    name: Contactpersoon
+    max: 100
+    icon: mdi:account
+
+  klant_adres:
+    name: Adres
+    max: 150
+    icon: mdi:map-marker
+
+  klant_postcode:
+    name: Postcode
+    max: 10
+    icon: mdi:mailbox
+
+  klant_stad:
+    name: Stad
+    max: 100
+    icon: mdi:city
+
+  klant_email:
+    name: E-mailadres
+    max: 100
+    icon: mdi:email
+
+  klant_telefoon:
+    name: Telefoonnummer
+    max: 30
+    icon: mdi:phone
+
+  klant_btwnummer:
+    name: BTW-nummer
+    max: 20
+    icon: mdi:office-building
+
+  klant_kvknummer:
+    name: KVK-nummer
+    max: 20
+    icon: mdi:card-account-details
+
+  klant_iban:
+    name: IBAN
+    max: 34
+    icon: mdi:bank
+
+  klant_notities:
+    name: Notities
+    max: 500
+    icon: mdi:note-text
+
+  klant_status:
+    name: Klant Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+# ---------------------------------------------------------
+# KOSTEN (legacy) — Tekstvelden
+# ---------------------------------------------------------
   kosten_leverancier:
     name: Leverancier
     max: 100
@@ -108,19 +286,19 @@ input_text:
     icon: mdi:text
 
   kosten_datum:
-    name: Datum (JJJJ-MM-DD)
+    name: "Datum (JJJJ-MM-DD)"
     max: 10
     initial: ""
     icon: mdi:calendar
 
   kosten_status:
     name: Kosten Status
-    initial: "Klaar"
+    initial: ""
     max: 200
     icon: mdi:information
 
 # ---------------------------------------------------------
-# Factuur — Getallen (aantallen & prijzen)
+# VERKOPEN — Getallen
 # ---------------------------------------------------------
 input_number:
   factuur_regel1_aantal:
@@ -174,8 +352,23 @@ input_number:
     unit_of_measurement: "€"
     icon: mdi:currency-eur
 
+# ---------------------------------------------------------
+# INKOPEN — Getallen
+# ---------------------------------------------------------
+  inkoop_bedrag:
+    name: "Bedrag (excl. BTW)"
+    min: 0
+    max: 999999
+    step: 0.01
+    initial: 0
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+# ---------------------------------------------------------
+# KOSTEN (legacy) — Getallen
+# ---------------------------------------------------------
   kosten_bedrag:
-    name: Bedrag (excl. BTW)
+    name: "Bedrag (excl. BTW)"
     min: 0
     max: 999999
     step: 0.01
@@ -189,6 +382,14 @@ input_button:
   factuur_genereer:
     name: Factuur Genereren
     icon: mdi:file-document-plus
+
+  inkoop_opslaan:
+    name: Inkoop Opslaan
+    icon: mdi:cart-arrow-down
+
+  klant_opslaan:
+    name: Klant Opslaan
+    icon: mdi:account-plus
 
   kosten_opslaan:
     name: Kosten Opslaan
