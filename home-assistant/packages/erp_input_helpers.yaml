@@ -325,6 +325,8 @@ input_select:
 
 # ---------------------------------------------------------
 # INPUT TEXT
+# Alle velden hebben initial: "" zodat ze nooit als
+# 'unknown' starten na een herstart van Home Assistant.
 # ---------------------------------------------------------
 input_text:
 
@@ -332,22 +334,27 @@ input_text:
   factuur_project:
     name: Project / Referentie
     max: 100
+    initial: ""
     icon: mdi:briefcase
   factuur_regel1_omschrijving:
     name: "Regel 1 — Omschrijving"
     max: 200
+    initial: ""
     icon: mdi:text
   factuur_regel2_omschrijving:
     name: "Regel 2 — Omschrijving"
     max: 200
+    initial: ""
     icon: mdi:text
   factuur_regel3_omschrijving:
     name: "Regel 3 — Omschrijving"
     max: 200
+    initial: ""
     icon: mdi:text
   factuur_notities:
     name: Notities
     max: 255
+    initial: ""
     icon: mdi:note-text
   factuur_status:
     name: Factuur Status
@@ -359,10 +366,12 @@ input_text:
   inkoop_leverancier:
     name: Leverancier
     max: 100
+    initial: ""
     icon: mdi:store
   inkoop_factuurnummer:
     name: Factuurnummer leverancier
     max: 50
+    initial: ""
     icon: mdi:pound
   inkoop_datum:
     name: "Datum (JJJJ-MM-DD)"
@@ -372,6 +381,7 @@ input_text:
   inkoop_omschrijving:
     name: Omschrijving
     max: 200
+    initial: ""
     icon: mdi:text
   inkoop_status:
     name: Inkoop Status
@@ -383,46 +393,57 @@ input_text:
   klant_naam:
     name: Bedrijfsnaam / Naam
     max: 100
+    initial: ""
     icon: mdi:domain
   klant_contactpersoon:
     name: Contactpersoon
     max: 100
+    initial: ""
     icon: mdi:account
   klant_adres:
     name: Adres
     max: 150
+    initial: ""
     icon: mdi:map-marker
   klant_postcode:
     name: Postcode
     max: 10
+    initial: ""
     icon: mdi:mailbox
   klant_stad:
     name: Stad
     max: 100
+    initial: ""
     icon: mdi:city
   klant_email:
     name: E-mailadres
     max: 100
+    initial: ""
     icon: mdi:email
   klant_telefoon:
     name: Telefoonnummer
     max: 30
+    initial: ""
     icon: mdi:phone
   klant_btwnummer:
     name: BTW-nummer
     max: 20
+    initial: ""
     icon: mdi:office-building
   klant_kvknummer:
     name: KVK-nummer
     max: 20
+    initial: ""
     icon: mdi:card-account-details
   klant_iban:
     name: IBAN
     max: 34
+    initial: ""
     icon: mdi:bank
   klant_notities:
     name: Notities
     max: 255
+    initial: ""
     icon: mdi:note-text
   klant_status:
     name: Klant Status
@@ -434,10 +455,12 @@ input_text:
   kosten_leverancier:
     name: Leverancier
     max: 100
+    initial: ""
     icon: mdi:store
   kosten_omschrijving:
     name: Omschrijving
     max: 200
+    initial: ""
     icon: mdi:text
   kosten_datum:
     name: "Datum (JJJJ-MM-DD)"
@@ -518,6 +541,7 @@ input_number:
     min: 0
     max: 999999
     step: 0.01
+    initial: 0
     unit_of_measurement: "€"
     icon: mdi:currency-eur
 
