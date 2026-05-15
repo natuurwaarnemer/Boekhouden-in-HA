@@ -66,6 +66,7 @@ Boekhouden-in-HA/
 | HTML factuurtemplate (huisstijl) | ⚠️ Generiek aanwezig, nog aanpassen | `templates/factuur_template.html` |
 | Spookfactuur test (end-to-end) | ❌ Nog uitvoeren | Morgen |
 | PDF generatie via Gotenberg | ⚠️ Workflow aanwezig, nog niet getest |  |
+| Dashboard extra laag | ❌ Nog toevoegen | Morgen |
 | BTW-rapport | ❌ Nog niet geïmplementeerd | |
 
 ### ❌ Fase 2 — Webshop (nog niet gestart)
@@ -90,6 +91,7 @@ Boekhouden-in-HA/
 - [ ] **workflow_klanten.json** aanmaken in n8n map
 - [ ] **Spookfactuur test** — end-to-end testen of de hele factuurflow werkt
 - [ ] **Factuurontwerp** aanpassen aan Natuurwaarnemer huisstijl (`templates/factuur_template.html`)
+- [ ] **Dashboard extra laag** toevoegen aan het Lovelace dashboard
 - [ ] **Paperless-ngx integratie** onderzoeken (gratis, zelfgehost, Docker) — voor archiveren van factuur-PDF's
 
 ---
@@ -151,6 +153,7 @@ Voorbeelden: `NW-2026-0001`, `NW-2026-0042`
 - [ ] workflow_inkoop.json en workflow_klanten.json nog aanmaken
 - [ ] Spookfactuur end-to-end test nog uitvoeren
 - [ ] Factuurtemplate aanpassen aan Natuurwaarnemer huisstijl
+- [ ] Dashboard extra laag toevoegen
 - [ ] Paperless-ngx integratie (document archivering)
 - [ ] BTW-rapport is nog niet geïmplementeerd (Fase 1)
 - [ ] Geen geautomatiseerde tests aanwezig
