@@ -2,72 +2,84 @@ title: Natuurwaarnemer ERP
 views:
 
   # =========================================================
-  # View 1: Facturen
+  # View 1: Verkopen (Facturen)
   # =========================================================
-  - title: "📄 Facturen"
-    path: facturen
+  - title: "🧾 Verkopen"
+    path: verkopen
     icon: mdi:file-document-outline
     cards:
 
       - type: markdown
         content: |
-          ## 🧾 Nieuwe Factuur — Natuurwaarnemer ERP
+          ## 🧾 Nieuwe Factuur — Verkopen
           Vul de gegevens in en klik op **Factuur genereren**.
 
+          | Grootboek | Omschrijving | BTW |
+          |---|---|---|
+          | **8000** | Omzet diensten | 21% |
+          | **8010** | Omzet diensten | 9% |
+          | **8020** | Omzet vrijgesteld | 0% |
+          | **8100** | Omzet producten | 21% |
+          | **1300** | Debiteuren (vordering op klant) | — |
+          | **1510** | BTW-afdracht hoog (21%) | — |
+          | **1511** | BTW-afdracht laag (9%) | — |
+
       - type: entities
-        title: Klant & Project
+        title: "👤 Klant & Project"
         entities:
           - entity: input_select.factuur_klant
             name: Klant
           - entity: input_text.factuur_project
             name: Project / Referentie
+          - entity: input_select.factuur_grootboek
+            name: "Grootboekrekening Omzet"
 
       - type: entities
-        title: "Regel 1"
+        title: "📝 Regel 1"
         entities:
           - entity: input_text.factuur_regel1_omschrijving
             name: Omschrijving
           - entity: input_number.factuur_regel1_aantal
             name: Aantal
           - entity: input_number.factuur_regel1_prijs
-            name: Stukprijs (€)
+            name: "Stukprijs (€)"
           - entity: input_select.factuur_regel1_btw
-            name: BTW %
+            name: "BTW %"
 
       - type: entities
-        title: "Regel 2"
+        title: "📝 Regel 2"
         entities:
           - entity: input_text.factuur_regel2_omschrijving
             name: Omschrijving
           - entity: input_number.factuur_regel2_aantal
             name: Aantal
           - entity: input_number.factuur_regel2_prijs
-            name: Stukprijs (€)
+            name: "Stukprijs (€)"
           - entity: input_select.factuur_regel2_btw
-            name: BTW %
+            name: "BTW %"
 
       - type: entities
-        title: "Regel 3"
+        title: "📝 Regel 3"
         entities:
           - entity: input_text.factuur_regel3_omschrijving
             name: Omschrijving
           - entity: input_number.factuur_regel3_aantal
             name: Aantal
           - entity: input_number.factuur_regel3_prijs
-            name: Stukprijs (€)
+            name: "Stukprijs (€)"
           - entity: input_select.factuur_regel3_btw
-            name: BTW %
+            name: "BTW %"
 
       - type: entities
-        title: Opmerkingen & Status
+        title: "📋 Notities & Status"
         entities:
           - entity: input_text.factuur_notities
             name: Notities
           - entity: input_text.factuur_status
-            name: Status
+            name: Status (terugkoppeling)
 
       - type: button
-        name: Factuur genereren
+        name: "✅ Factuur genereren"
         icon: mdi:file-document-plus
         tap_action:
           action: toggle
@@ -75,7 +87,146 @@ views:
         show_state: false
 
   # =========================================================
-  # View 2: Kosten
+  # View 2: Inkopen (Kosten)
+  # =========================================================
+  - title: "🛒 Inkopen"
+    path: inkopen
+    icon: mdi:cart-arrow-down
+    cards:
+
+      - type: markdown
+        content: |
+          ## 🛒 Inkopen & Kostenregistratie
+          Registreer een inkoopfactuur of uitgave.
+
+          | Grootboek | Omschrijving | BTW |
+          |---|---|---|
+          | **4000** | Inkoopwaarde handelsgoederen | 21% |
+          | **4200** | Inkoop diensten / uitbesteding | 21% |
+          | **4300** | Inhuur freelancers / ZZP | 21% |
+          | **4410** | Kantoorkosten | 21% |
+          | **4420** | Reiskosten | 21% / 0% |
+          | **4430** | Marketing en reclame | 21% |
+          | **4440** | Automatisering en software | 21% |
+          | **4450** | Verzekeringen | 0% |
+          | **4460** | Telefoon en internet | 21% |
+          | **6100** | Bankkosten | 0% |
+          | **7000** | Representatiekosten | 21% |
+          | **1600** | Crediteuren (schuld aan leverancier) | — |
+          | **1520** | Voorbelasting BTW (te vorderen) | — |
+
+      - type: entities
+        title: "🏪 Leverancier & Details"
+        entities:
+          - entity: input_text.inkoop_leverancier
+            name: Leverancier
+          - entity: input_text.inkoop_factuurnummer
+            name: "Factuurnummer leverancier"
+          - entity: input_text.inkoop_datum
+            name: "Datum (JJJJ-MM-DD)"
+          - entity: input_text.inkoop_omschrijving
+            name: Omschrijving
+
+      - type: entities
+        title: "💶 Bedrag & Grootboek"
+        entities:
+          - entity: input_number.inkoop_bedrag
+            name: "Bedrag (excl. BTW)"
+          - entity: input_select.inkoop_btw
+            name: "BTW %"
+          - entity: input_select.inkoop_grootboek
+            name: "Grootboekrekening"
+
+      - type: entities
+        title: "📋 Status"
+        entities:
+          - entity: input_text.inkoop_status
+            name: "Status (terugkoppeling)"
+
+      - type: button
+        name: "✅ Inkoop opslaan"
+        icon: mdi:cart-arrow-down
+        tap_action:
+          action: toggle
+        entity: input_button.inkoop_opslaan
+        show_state: false
+
+  # =========================================================
+  # View 3: Klantenbestand
+  # =========================================================
+  - title: "👥 Klanten"
+    path: klanten
+    icon: mdi:account-group
+    cards:
+
+      - type: markdown
+        content: |
+          ## 👥 Klantenbestand
+          Voeg een nieuwe klant toe of werk een bestaande klant bij.
+
+          | Grootboek | Omschrijving |
+          |---|---|
+          | **1300** | Debiteuren — openstaande vorderingen op klanten |
+          | **8000** | Omzet diensten (21% BTW) |
+          | **8100** | Omzet producten (21% BTW) |
+          | **8900** | Omzet vrijgesteld van BTW |
+
+          > 💡 Tip: na opslaan wordt de klant automatisch beschikbaar in de **Verkopen** dropdown.
+
+      - type: entities
+        title: "🏢 Bedrijfsgegevens"
+        entities:
+          - entity: input_text.klant_naam
+            name: "Bedrijfsnaam / Naam"
+          - entity: input_select.klant_type
+            name: "Klanttype"
+          - entity: input_text.klant_contactpersoon
+            name: Contactpersoon
+          - entity: input_text.klant_btwnummer
+            name: BTW-nummer
+          - entity: input_text.klant_kvknummer
+            name: KVK-nummer
+
+      - type: entities
+        title: "📮 Adresgegevens"
+        entities:
+          - entity: input_text.klant_adres
+            name: "Adres"
+          - entity: input_text.klant_postcode
+            name: Postcode
+          - entity: input_text.klant_stad
+            name: Stad
+          - entity: input_select.klant_land
+            name: Land
+
+      - type: entities
+        title: "📞 Contactgegevens"
+        entities:
+          - entity: input_text.klant_email
+            name: E-mailadres
+          - entity: input_text.klant_telefoon
+            name: Telefoonnummer
+          - entity: input_text.klant_iban
+            name: IBAN
+
+      - type: entities
+        title: "📝 Notities & Status"
+        entities:
+          - entity: input_text.klant_notities
+            name: Notities
+          - entity: input_text.klant_status
+            name: "Status (terugkoppeling)"
+
+      - type: button
+        name: "✅ Klant opslaan"
+        icon: mdi:account-plus
+        tap_action:
+          action: toggle
+        entity: input_button.klant_opslaan
+        show_state: false
+
+  # =========================================================
+  # View 4: Kosten (legacy / snelle registratie)
   # =========================================================
   - title: "💸 Kosten"
     path: kosten
@@ -84,33 +235,44 @@ views:
 
       - type: markdown
         content: |
-          ## 💸 Kostenregistratie
-          Registreer een uitgave en klik op **Kosten opslaan**.
+          ## 💸 Snelle Kostenregistratie
+          Voor kleine uitgaven zonder leveranciersfactuur.
+
+          | Grootboek | Omschrijving |
+          |---|---|
+          | **4410** | Kantoorkosten |
+          | **4420** | Reiskosten |
+          | **4430** | Marketing |
+          | **4440** | Automatisering |
+          | **4450** | Verzekeringen |
+          | **4460** | Telefoon / internet |
+          | **6100** | Bankkosten |
+          | **7400** | Overige kosten |
 
       - type: entities
-        title: Kostendetails
+        title: "💶 Kostendetails"
         entities:
           - entity: input_text.kosten_leverancier
             name: Leverancier
           - entity: input_text.kosten_omschrijving
             name: Omschrijving
           - entity: input_number.kosten_bedrag
-            name: Bedrag (excl. BTW)
+            name: "Bedrag (excl. BTW)"
           - entity: input_select.kosten_btw
-            name: BTW %
+            name: "BTW %"
           - entity: input_text.kosten_datum
-            name: Datum (JJJJ-MM-DD)
+            name: "Datum (JJJJ-MM-DD)"
           - entity: input_select.kosten_grootboek
             name: Grootboekrekening
 
       - type: entities
-        title: Status
+        title: "📋 Status"
         entities:
           - entity: input_text.kosten_status
-            name: Status
+            name: "Status (terugkoppeling)"
 
       - type: button
-        name: Kosten opslaan
+        name: "✅ Kosten opslaan"
         icon: mdi:content-save
         tap_action:
           action: toggle
@@ -118,7 +280,7 @@ views:
         show_state: false
 
   # =========================================================
-  # View 3: Overzicht
+  # View 5: Financieel Overzicht
   # =========================================================
   - title: "📊 Overzicht"
     path: overzicht
@@ -132,8 +294,7 @@ views:
           Hier komen de rapportage-kaarten zodra de grootboekflow actief is.
           Gebruik de n8n `/grootboek-rapport?periode=JJJJ-MM` webhook voor live data.
 
-          **Tip:** Voeg onderstaande `rest` sensor toe aan `configuration.yaml` om
-          de n8n rapportage-webhook periodiek op te vragen:
+          **Tip:** Voeg onderstaande `rest` sensor toe aan `configuration.yaml`:
 
           ```yaml
           sensor:
@@ -151,7 +312,14 @@ views:
               scan_interval: 3600
           ```
 
-          Daarna zijn `sensor.erp_rapport` attributen beschikbaar voor de kaarten hieronder.
+          | Grootboek | Omschrijving |
+          |---|---|
+          | **8xxx** | Omzet (alle verkopen) |
+          | **4xxx–7xxx** | Kosten (alle inkopen) |
+          | **9000** | Brutowinst |
+          | **9100** | Bedrijfsresultaat |
+          | **1510/1511** | BTW afdracht hoog/laag |
+          | **1520** | Voorbelasting BTW |
 
       - type: statistic
         entity: sensor.erp_omzet_maand
