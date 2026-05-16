@@ -71,11 +71,30 @@
       }
     },
     {
+      "id": "node_notify_ha",
+      "name": "HTTP: HA terugkoppeling",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "body": {
+          "type": "={{ $json.type }}",
+          "bericht": "={{ $json.bericht }}",
+          "klanten": "={{ $json.klanten }}"
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "node_respond",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1300, 300],
+      "position": [1500, 300],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ success: true, type: 'klant', bericht: $('Function: Klantenlijst opbouwen').item.json.bericht, klanten: $('Function: Klantenlijst opbouwen').item.json.klanten }) }}",
@@ -97,6 +116,9 @@
       "main": [[{ "node": "Function: Klantenlijst opbouwen", "type": "main", "index": 0 }]]
     },
     "Function: Klantenlijst opbouwen": {
+      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+    },
+    "HTTP: HA terugkoppeling": {
       "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
