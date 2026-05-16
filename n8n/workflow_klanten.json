@@ -1,0 +1,119 @@
+{
+  "name": "Natuurwaarnemer ERP — Klant opslaan",
+  "nodes": [
+    {
+      "id": "node_webhook",
+      "name": "Webhook: Klant opslaan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "klant-opslaan",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_sanitize",
+      "name": "Function: Input valideren",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "parameters": {
+        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\n\nconst b = items[0].json.body || items[0].json;\n\nreturn [{ json: {\n  naam:           sanitize(b.naam),\n  type:           sanitize(b.type),\n  contactpersoon: sanitize(b.contactpersoon),\n  adres:          sanitize(b.adres),\n  postcode:       sanitize(b.postcode),\n  stad:           sanitize(b.stad),\n  land:           sanitize(b.land),\n  email:          sanitize(b.email),\n  telefoon:       sanitize(b.telefoon),\n  btwnummer:      sanitize(b.btwnummer),\n  kvknummer:      sanitize(b.kvknummer),\n  iban:           sanitize(b.iban),\n  notities:       sanitize(b.notities)\n}}];"
+      }
+    },
+    {
+      "id": "node_upsert",
+      "name": "SQLite: Klant opslaan (upsert)",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes)\nVALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.stad }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btwnummer }}', '{{ $json.kvknummer }}', '{{ $json.iban }}', '{{ $json.notities }}')\nON CONFLICT(name) DO UPDATE SET\n  type           = excluded.type,\n  contact_person = excluded.contact_person,\n  address        = excluded.address,\n  postal_code    = excluded.postal_code,\n  city           = excluded.city,\n  country        = excluded.country,\n  email          = excluded.email,\n  phone          = excluded.phone,\n  vat_number     = excluded.vat_number,\n  kvk_number     = excluded.kvk_number,\n  iban           = excluded.iban,\n  notes          = excluded.notes,\n  updated_at     = CURRENT_TIMESTAMP",
+        "options": {},
+        "db_path": "/data/erp.db"
+      }
+    },
+    {
+      "id": "node_get_all",
+      "name": "SQLite: Alle klanten ophalen",
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT name FROM customers ORDER BY name ASC",
+        "options": {},
+        "db_path": "/data/erp.db"
+      }
+    },
+    {
+      "id": "node_build_list",
+      "name": "Function: Klantenlijst opbouwen",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "parameters": {
+        "functionCode": "const rows = items.map(i => i.json.name).filter(Boolean);\nconst naam = $node['Function: Input valideren'].json.naam;\nreturn [{ json: {\n  klanten: rows,\n  bericht: `Klant '${naam}' opgeslagen. ${rows.length} klant(en) in het systeem.`,\n  type: 'klant'\n}}];"
+      }
+    },
+    {
+      "id": "node_ha_webhook",
+      "name": "HTTP Request: HA bevestiging + dropdown",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://homeassistant.local:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"type\": \"klant\", \"bericht\": \"{{ $json.bericht }}\", \"klanten\": {{ JSON.stringify($json.klanten) }}}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node_respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1500, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"bericht\": \"{{ $('Function: Klantenlijst opbouwen').item.json.bericht }}\" }",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Klant opslaan": {
+      "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
+    },
+    "Function: Input valideren": {
+      "main": [[{ "node": "SQLite: Klant opslaan (upsert)", "type": "main", "index": 0 }]]
+    },
+    "SQLite: Klant opslaan (upsert)": {
+      "main": [[{ "node": "SQLite: Alle klanten ophalen", "type": "main", "index": 0 }]]
+    },
+    "SQLite: Alle klanten ophalen": {
+      "main": [[{ "node": "Function: Klantenlijst opbouwen", "type": "main", "index": 0 }]]
+    },
+    "Function: Klantenlijst opbouwen": {
+      "main": [[{ "node": "HTTP Request: HA bevestiging + dropdown", "type": "main", "index": 0 }]]
+    },
+    "HTTP Request: HA bevestiging + dropdown": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "meta": {
+    "instanceId": "natuurwaarnemer-erp"
+  },
+  "tags": [{ "name": "ERP" }, { "name": "Klanten" }]
+}
