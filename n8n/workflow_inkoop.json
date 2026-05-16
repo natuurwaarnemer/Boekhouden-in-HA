@@ -1,5 +1,5 @@
 {
-  "name": "Natuurwaarnemer ERP — Inkoop opslaan",
+  "name": "Natuurwaarnemer ERP \u2014 Inkoop opslaan",
   "nodes": [
     {
       "id": "node_webhook",
@@ -21,33 +21,27 @@
       "typeVersion": 1,
       "position": [460, 300],
       "parameters": {
-        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\n\nconst b = items[0].json.body || items[0].json;\n\nconst bedrag = parseFloat(b.bedrag) || 0;\nconst btw_pct = parseFloat(b.btw) || 0;\nconst btw_bedrag = Math.round(bedrag * btw_pct) / 100;\nconst totaal = Math.round((bedrag + btw_bedrag) * 100) / 100;\n\nreturn [{ json: {\n  leverancier:   sanitize(b.leverancier),\n  factuurnummer: sanitize(b.factuurnummer),\n  datum:         sanitize(b.datum) || new Date().toISOString().split('T')[0],\n  omschrijving:  sanitize(b.omschrijving),\n  bedrag:        bedrag,\n  btw_pct:       btw_pct,\n  btw_bedrag:    btw_bedrag,\n  totaal:        totaal,\n  grootboek:     sanitize(b.grootboek)\n}}];"
+        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\n\nconst b = items[0].json.body || items[0].json;\nconst subtotaal = parseFloat(b.subtotaal) || 0;\nconst btw_tarief = parseFloat(b.btw_tarief) || 21;\nconst btw_bedrag = Math.round(subtotaal * btw_tarief) / 100;\nconst totaal = Math.round((subtotaal + btw_bedrag) * 100) / 100;\n\nreturn [{ json: {\n  leverancier:    sanitize(b.leverancier),\n  factuurnummer:  sanitize(b.factuurnummer),\n  datum:          sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  omschrijving:   sanitize(b.omschrijving),\n  subtotaal:      subtotaal,\n  btw_tarief:     btw_tarief,\n  btw_bedrag:     btw_bedrag,\n  totaal:         totaal,\n  grootboek_code: sanitize(b.grootboek_code || '7000')\n}}];"
       }
     },
     {
       "id": "node_insert",
-      "name": "SQLite: Inkoop invoegen",
-      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "name": "Execute: Inkoop invoegen",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [680, 300],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO purchases (supplier, invoice_number, date, description, subtotal, btw_amount, total, btw_rate, grootboek_code, status)\nVALUES (\n  '{{ $json.leverancier }}',\n  '{{ $json.factuurnummer }}',\n  '{{ $json.datum }}',\n  '{{ $json.omschrijving }}',\n  {{ $json.bedrag }},\n  {{ $json.btw_bedrag }},\n  {{ $json.totaal }},\n  '{{ $json.btw_pct }}',\n  '{{ $json.grootboek }}',\n  'geboekt'\n)",
-        "options": {},
-        "db_path": "/data/erp.db"
+        "command": "=sqlite3 /data/gippetto.db \"INSERT INTO expenses (date, supplier, description, amount, btw_percentage, btw_amount, total, ledger_account_id) SELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.omschrijving }}', {{ $json.subtotaal }}, {{ $json.btw_tarief }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id FROM ledger_accounts WHERE code = '{{ $json.grootboek_code }}' LIMIT 1;\""
       }
     },
     {
       "id": "node_ledger",
-      "name": "SQLite: Grootboekboeking inkoop",
-      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "name": "Execute: Grootboekboeking inkoop",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [900, 200],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT\n  '{{ $json.datum }}',\n  id,\n  'Inkoop {{ $json.leverancier }} - {{ $json.omschrijving }}',\n  {{ $json.bedrag }},\n  0,\n  '{{ $json.factuurnummer }}',\n  'inkoop'\nFROM accounts WHERE code = SUBSTR('{{ $json.grootboek }}', 1, 4) LIMIT 1;\n\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT\n  '{{ $json.datum }}',\n  id,\n  'BTW inkoop {{ $json.leverancier }}',\n  {{ $json.btw_bedrag }},\n  0,\n  '{{ $json.factuurnummer }}',\n  'inkoop'\nFROM accounts WHERE code = '1530' LIMIT 1;\n\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT\n  '{{ $json.datum }}',\n  id,\n  'Crediteuren {{ $json.leverancier }}',\n  0,\n  {{ $json.totaal }},\n  '{{ $json.factuurnummer }}',\n  'inkoop'\nFROM accounts WHERE code = '1600' LIMIT 1",
-        "options": {},
-        "db_path": "/data/erp.db"
+        "command": "=sqlite3 /data/gippetto.db \"INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $node['Function: Input valideren'].json.datum }}', id, 'Inkoop {{ $node['Function: Input valideren'].json.leverancier }} - {{ $node['Function: Input valideren'].json.factuurnummer }}', {{ $node['Function: Input valideren'].json.totaal }}, 0, '{{ $node['Function: Input valideren'].json.factuurnummer }}', 'inkoop' FROM ledger_accounts WHERE code = '{{ $node['Function: Input valideren'].json.grootboek_code }}';\""
       }
     },
     {
@@ -61,7 +55,7 @@
         "url": "http://homeassistant.local:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
         "sendBody": true,
         "contentType": "json",
-        "body": "={\"type\": \"inkoop\", \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (€ {{ $('Function: Input valideren').item.json.totaal }})\"}" ,
+        "body": "={\"type\": \"inkoop\", \"bericht\": \"Inkoop van {{ $node['Function: Input valideren'].json.leverancier }} opgeslagen (\u20ac {{ $node['Function: Input valideren'].json.totaal }})\"}" ,
         "options": {}
       }
     },
@@ -73,7 +67,7 @@
       "position": [1300, 300],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"success\": true, \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen\" }",
+        "responseBody": "={ \"success\": true, \"bericht\": \"Inkoop van {{ $node['Function: Input valideren'].json.leverancier }} opgeslagen\" }",
         "options": {}
       }
     }
@@ -83,17 +77,17 @@
       "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
     },
     "Function: Input valideren": {
-      "main": [[{ "node": "SQLite: Inkoop invoegen", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Execute: Inkoop invoegen", "type": "main", "index": 0 }]]
     },
-    "SQLite: Inkoop invoegen": {
+    "Execute: Inkoop invoegen": {
       "main": [
         [
-          { "node": "SQLite: Grootboekboeking inkoop", "type": "main", "index": 0 },
+          { "node": "Execute: Grootboekboeking inkoop", "type": "main", "index": 0 },
           { "node": "HTTP Request: HA bevestiging", "type": "main", "index": 0 }
         ]
       ]
     },
-    "SQLite: Grootboekboeking inkoop": {
+    "Execute: Grootboekboeking inkoop": {
       "main": [[{ "node": "HTTP Request: HA bevestiging", "type": "main", "index": 0 }]]
     },
     "HTTP Request: HA bevestiging": {
