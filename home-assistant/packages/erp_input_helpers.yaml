@@ -334,6 +334,8 @@ automation:
       - condition: template
         value_template: >
           {{ states('input_text.erp_status') not in ['idle', 'unknown', '']
+             and states.input_text.erp_status is defined
+             and states.input_text.erp_status.last_changed is not none
              and (now() - states.input_text.erp_status.last_changed).total_seconds() > 300 }}
     action:
       - service: input_text.set_value

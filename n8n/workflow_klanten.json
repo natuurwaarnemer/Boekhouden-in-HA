@@ -102,7 +102,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer {{$credentials.haLongLivedToken}}"
+              "value": "Bearer JOUW_LONG_LIVED_TOKEN"
             },
             {
               "name": "Content-Type",
