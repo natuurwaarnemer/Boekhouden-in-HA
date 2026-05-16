@@ -1,201 +1,227 @@
-# Natuurwaarnemer ERP
+# 🧾 Natuurwaarnemer ERP
 
-**Volledig lokaal, gratis ERP-systeem op basis van Home Assistant + n8n + SQLite — zonder cloud of abonnementen.**
+**Volledig lokaal, gratis ERP-systeem voor ZZP'ers en kleine ondernemers.**  
+Gebouwd op Home Assistant + n8n + SQLite. Geen cloud. Geen abonnement. Jouw data, op jouw hardware.
 
-Natuurwaarnemer ERP is een open-source bedrijfsbeheersysteem voor kleine ondernemers en ZZP'ers die hun facturatie, kosten, grootboek en klantenbeheer volledig zelf willen beheren. Het systeem draait op jouw eigen server of NAS, gebruikt uitsluitend gratis software en slaat alle gegevens lokaal op in SQLite.
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-☕-yellow)](https://www.buymeacoffee.com/natuurwaarnemer)
 
----
-
-## Projectdoelstelling
-
-- **Geen abonnementen** — geen Moneybird, geen Exact Online, geen maandelijkse kosten
-- **Geen cloud** — alle data blijft op jouw eigen hardware
-- **Maximale controle** — open source, aanpasbaar naar eigen wensen
-- **Volledig BTW-conform** — RGS grootboekschema, BTW-specificatie, 21%/9%/0%
-- **Geautomatiseerd** — facturen aanmaken, PDF genereren, e-mailen en boeken in één klik
+> ☕ **[Buy me a coffee](https://www.buymeacoffee.com/natuurwaarnemer)** — vind je dit project handig? Een kleine bijdrage wordt enorm gewaardeerd!
 
 ---
 
-## Vereisten
+## ⚠️ Disclaimer
 
-| Component | Versie | Doel |
+> Dit systeem is gebouwd voor **eigen gebruik** en wordt aangeboden als open-source project.  
+> De gebruiker is **zelf verantwoordelijk** voor:
+> - De juistheid van de administratie
+> - Naleving van fiscale wetgeving (BTW-aangifte, bewaarplicht 7 jaar)
+> - Eventuele fouten in boekingen of facturen
+>
+> Dit pakket **vervangt geen accountant**. Gebruik op eigen risico. MIT-licentie van toepassing.
+
+---
+
+## 🎯 Wat doet dit systeem?
+
+- 📄 **Facturen aanmaken** — invullen in HA, PDF genereren, e-mailen, boeken in grootboek
+- 🛒 **Inkoop registreren** — leveranciersfacturen opslaan en boeken
+- 👥 **Klanten beheren** — klantgegevens opslaan, herbruikbaar in factuurscherm
+- 💸 **Kosten registreren** — bedrijfskosten vastleggen met grootboekrekening
+- 📊 **Grootboek** — automatische dubbele boekhouding via RGS schema
+
+---
+
+## 🖥️ Twee dozen — zo werkt het
+
+> **Belangrijk:** dit systeem draait op **twee aparte apparaten** (of VM's/containers).
+
+```
+┌─────────────────────────┐        ┌─────────────────────────┐
+│      DOOS 1             │        │      DOOS 2             │
+│   Home Assistant        │──────▶ │        n8n              │
+│                         │  HTTP  │                         │
+│  • Invoerschermen       │  POST  │  • Verwerkt de data     │
+│  • Dashboard            │        │  • Slaat op in SQLite   │
+│  • Knoppen & statussen  │◀────── │  • Genereert PDF        │
+│                         │  JSON  │  • Verstuurt e-mail     │
+└─────────────────────────┘        │  • Boekt in grootboek   │
+                                   └─────────────────────────┘
+                                             │
+                                   ┌─────────┴─────────┐
+                                   │     Optioneel      │
+                                   │   Paperless-ngx    │
+                                   │  (PDF archivering) │
+                                   └───────────────────┘
+```
+
+| Doos | Wat draait hier | Poort |
 |---|---|---|
-| [Home Assistant](https://www.home-assistant.io/) | 2024.1+ | Invoerschermen, dashboards, automations |
-| [n8n](https://n8n.io/) | 1.x | Workflow-automatisering, API-koppeling |
-| [SQLite](https://www.sqlite.org/) | 3.x | Lokale database |
-| [Gotenberg](https://gotenberg.dev/) | 8.x | PDF-generatie via Docker |
-| Docker | 20.x+ | Voor Gotenberg en optioneel n8n |
-| SMTP-server | — | E-mail versturen via n8n |
+| **Doos 1** | Home Assistant | 8123 |
+| **Doos 2** | n8n | 5678 |
+| **Doos 2** | SQLite (via n8n) | — |
+| **Doos 2** | Gotenberg (Docker) | 3000 |
+| **Doos 2** *(optioneel)* | Paperless-ngx (Docker) | 8000 |
 
 ---
 
-## Mappenstructuur
+## 📦 Componenten
+
+### Verplicht
+
+| Component | Doos | Doel |
+|---|---|---|
+| [Home Assistant](https://www.home-assistant.io/) 2024.1+ | Doos 1 | Invoerschermen, dashboards, automations |
+| [n8n](https://n8n.io/) 1.x | Doos 2 | Workflow-automatisering, webhooks |
+| [SQLite](https://www.sqlite.org/) 3.x | Doos 2 | Lokale database |
+| [Gotenberg](https://gotenberg.dev/) 8.x | Doos 2 | PDF-generatie via Docker |
+| Docker 20.x+ | Doos 2 | Voor Gotenberg |
+| SMTP-server | — | E-mail versturen |
+
+### Optioneel
+
+| Component | Doos | Doel |
+|---|---|---|
+| [Paperless-ngx](https://docs.paperless-ngx.com/) | Doos 2 | Archiveren van factuur-PDF's, OCR, doorzoekbaar |
+
+---
+
+## 🚀 Installatie — 5 stappen
+
+### Stap 1 — Doos 2: Database aanmaken
+
+```bash
+sqlite3 /data/erp.db < database/schema.sql
+sqlite3 /data/erp.db < database/seed_grootboek.sql
+```
+
+### Stap 2 — Doos 2: n8n workflows importeren
+
+1. Open n8n op `http://doos2-ip:5678`
+2. Ga naar **Workflows → Importeren**
+3. Importeer achtereenvolgens:
+   - `n8n/workflow_factuur.json`
+   - `n8n/workflow_kosten.json`
+   - `n8n/workflow_inkoop.json`
+   - `n8n/workflow_klanten.json`
+4. Zet alle workflows op **Active** ✅
+
+### Stap 3 — Doos 2: Gotenberg starten
+
+```yaml
+# docker-compose.yml
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+```
+
+### Stap 4 — Doos 1: HA package kopiëren
+
+Kopieer `home-assistant/packages/erp_input_helpers.yaml` naar `/config/packages/`
+
+Zorg dat `configuration.yaml` dit bevat:
+```yaml
+homeassistant:
+  packages: !include_dir_named packages/
+```
+
+Voeg toe aan `/config/secrets.yaml`:
+```yaml
+n8n_webhook_factuur: "http://doos2-ip:5678/webhook/factuur-aanmaken"
+n8n_webhook_kosten:  "http://doos2-ip:5678/webhook/kosten-opslaan"
+n8n_webhook_inkoop:  "http://doos2-ip:5678/webhook/inkoop-opslaan"
+n8n_webhook_klant:   "http://doos2-ip:5678/webhook/klant-opslaan"
+```
+
+Herstart Home Assistant.
+
+### Stap 5 — Doos 1: Dashboard importeren
+
+Ga naar **Instellingen → Dashboards → Toevoegen** en importeer `home-assistant/dashboard.yaml`.
+
+---
+
+### Optioneel: Paperless-ngx installeren (Doos 2)
+
+```yaml
+# toevoegen aan docker-compose.yml
+  paperless-ngx:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./paperless/data:/usr/src/paperless/data
+      - ./paperless/media:/usr/src/paperless/media
+```
+
+Na installatie: n8n stuurt gegenereerde factuur-PDF's automatisch naar Paperless via de REST API.
+
+---
+
+## 📁 Mappenstructuur
 
 ```
 Boekhouden-in-HA/
 ├── README.md
 ├── LICENSE
+├── context.md                          ← Projectstatus voor Copilot Spaces
 ├── database/
-│   ├── schema.sql              ← SQLite tabelstructuur
-│   └── seed_grootboek.sql      ← RGS grootboekrekeningen
+│   ├── schema.sql                      ← SQLite tabelstructuur
+│   └── seed_grootboek.sql              ← RGS grootboekrekeningen (0xxx–9xxx)
 ├── home-assistant/
-│   ├── input_helpers.yaml      ← Input helpers voor formulieren
-│   ├── automations.yaml        ← Automations → n8n webhooks
-│   └── dashboard.yaml          ← Lovelace dashboard
+│   └── packages/
+│       └── erp_input_helpers.yaml      ← Alles-in-één HA package
 ├── n8n/
-│   ├── workflow_factuur.json   ← Factuurflow
-│   ├── workflow_kosten.json    ← Kostenregistratie
-│   └── workflow_grootboek.json ← Rapportageflow
+│   ├── workflow_factuur.json           ← Factuurflow (PDF + e-mail + grootboek)
+│   ├── workflow_kosten.json            ← Kostenregistratie
+│   ├── workflow_inkoop.json            ← Inkoopfacturen
+│   └── workflow_klanten.json          ← Klantenbeheer
 ├── templates/
-│   └── factuur_template.html   ← HTML/CSS factuurtemplate
+│   └── factuur_template.html          ← HTML/CSS factuurtemplate (huisstijl)
 └── docs/
-    ├── installatie.md          ← Installatie-instructies
-    └── roadmap.md              ← Roadmap
+    ├── installatie.md                 ← Uitgebreide installatie-instructies
+    └── roadmap.md                     ← Roadmap
 ```
 
 ---
 
-## Installatie
+## 📊 Grootboekschema (RGS)
 
-### Stap 1 — SQLite database aanmaken
+| Reeks | Type |
+|---|---|
+| 0000–0999 | Vaste activa |
+| 1000–1999 | Vlottende activa (kas, bank, debiteuren) |
+| 2000–2999 | Voorraden |
+| 3000–3999 | Eigen vermogen |
+| 4000–4999 | Passiva / Kosten |
+| 5000–5999 | Personeelskosten |
+| 6000–6999 | Financiële kosten |
+| 7000–7999 | Overige bedrijfskosten |
+| 8000–8999 | Omzet |
+| 9000–9999 | Resultaat |
 
-```bash
-sqlite3 /data/gippetto.db < database/schema.sql
-```
-
-### Stap 2 — Grootboek seed importeren
-
-```bash
-sqlite3 /data/gippetto.db < database/seed_grootboek.sql
-```
-
-### Stap 3 — HA input helpers kopiëren
-
-Kopieer de inhoud van `home-assistant/input_helpers.yaml` naar jouw Home Assistant `/config/` map,
-of voeg toe aan `configuration.yaml`:
-
-```yaml
-# configuration.yaml
-homeassistant: !include_dir_merge_named includes/
-```
-
-Of plak de inhoud direct in `configuration.yaml` (of `input_select.yaml`, `input_text.yaml`, etc.).
-
-### Stap 4 — HA automations toevoegen
-
-Kopieer de inhoud van `home-assistant/automations.yaml` naar `/config/automations.yaml`
-of voeg de automations toe via de HA UI onder **Instellingen → Automations**.
-
-Voeg de webhook URLs toe aan `/config/secrets.yaml`:
-
-```yaml
-# secrets.yaml
-n8n_webhook_factuur: "http://n8n:5678/webhook/factuur-aanmaken"
-n8n_webhook_kosten: "http://n8n:5678/webhook/kosten-opslaan"
-```
-
-### Stap 5 — HA dashboard importeren
-
-Ga naar **Instellingen → Dashboards → Dashboard toevoegen** en importeer `home-assistant/dashboard.yaml`
-via de YAML-editor van een nieuw Lovelace dashboard.
-
-### Stap 6 — n8n workflows importeren
-
-1. Open n8n (standaard op `http://n8n:5678`)
-2. Ga naar **Workflows → Importeren**
-3. Importeer achtereenvolgens:
-   - `n8n/workflow_factuur.json`
-   - `n8n/workflow_kosten.json`
-   - `n8n/workflow_grootboek.json`
-4. Activeer alle drie de workflows
-
-### Stap 7 — Gotenberg starten via Docker
-
-```bash
-docker run --rm -p 3000:3000 gotenberg/gotenberg:8
-```
-
-Of voeg toe aan je `docker-compose.yml` (zie `docs/installatie.md` voor volledig voorbeeld).
-
-### Stap 8 — SMTP instellen in n8n
-
-1. Ga in n8n naar **Credentials → Nieuw → SMTP**
-2. Vul je SMTP-gegevens in (host, poort, gebruikersnaam, wachtwoord)
-3. Koppel deze credential aan de **Send Email** node in `workflow_factuur`
-
-### Stap 9 — n8n webhook URLs instellen in HA secrets.yaml
-
-```yaml
-# /config/secrets.yaml
-n8n_webhook_factuur: "http://n8n:5678/webhook/factuur-aanmaken"
-n8n_webhook_kosten: "http://n8n:5678/webhook/kosten-opslaan"
-```
-
-Herstart Home Assistant na het aanpassen van `secrets.yaml`.
+BTW-codes: `H` = 21%, `L` = 9%, `V` = vrijgesteld, `G` = geen BTW
 
 ---
 
-## Factuurnummering
+## 🤝 Contributing
 
-Facturen krijgen automatisch een uniek nummer in het formaat:
-
-```
-NW-YYYY-NNNN
-```
-
-Voorbeelden: `NW-2026-0001`, `NW-2026-0042`, `NW-2027-0001`
-
-- **Prefix:** `NW` (Natuurwaarnemer)
-- **Jaar:** automatisch huidig jaar
-- **Teller:** 4-cijferig, reset elk jaar naar `0001`
-- Instellingen beheerd via de `settings`-tabel in SQLite
-
----
-
-## Grootboekschema (RGS)
-
-Het systeem gebruikt een **volledig Nederlands Referentie Grootboekschema (RGS)** als basis, inclusief alle reeksen **0xxx t/m 9xxx**:
-
-| Reeks | Type | Omschrijving |
-|---|---|---|
-| 0000–0999 | Vaste activa | Inventaris, hardware, vervoermiddelen, gebouwen |
-| 1000–1999 | Vlottende activa | Kas, bank, debiteuren, BTW-vordering |
-| 2000–2999 | Voorraden | Handelsgoederen, grondstoffen, onderhanden werk |
-| 3000–3999 | Eigen vermogen | Kapitaal, winstreserves |
-| 4000–4999 | Passiva / Kosten | Crediteuren, BTW-schuld, inkoop- en bedrijfskosten |
-| 5000–5999 | Personeelskosten | Lonen, sociale lasten, pensioen, inhuur |
-| 6000–6999 | Financiële kosten | Rente, bankkosten, afschrijvingen |
-| 7000–7999 | Overige bedrijfskosten | Representatie, abonnementen, advies, onderhoud |
-| 8000–8999 | Omzet | Diensten, producten, vrijgesteld |
-| 9000–9999 | Resultaat | Brutowinst, bedrijfsresultaat, eindresultaat |
-
-BTW-codes: `H` = hoog tarief (21%), `L` = laag tarief (9%), `V` = vrijgesteld, `G` = geen BTW
-
----
-
-## Roadmap
-
-Zie [docs/roadmap.md](docs/roadmap.md) voor de volledige roadmap.
-
-**Fase 1 — Basis ERP:** database, HA invoerschermen, n8n factuurflow, PDF, grootboekboekingen, kosten, BTW-rapport  
-**Fase 2 — Webshop:** WooCommerce koppeling, orderverwerking, automatische facturen, voorraadbeheer  
-**Fase 3 — Rapportages:** omzet/kosten dashboards, BTW-aangifte, winst & verlies, jaaroverzicht
-
----
-
-## Contributing
-
-Bijdragen zijn welkom! Open een issue of pull request op GitHub.
+Bijdragen zijn welkom! Open een issue of pull request.
 
 1. Fork de repository
 2. Maak een feature branch: `git checkout -b feature/mijn-feature`
-3. Commit je wijzigingen: `git commit -m 'feat: voeg mijn feature toe'`
-4. Push naar de branch: `git push origin feature/mijn-feature`
+3. Commit: `git commit -m 'feat: omschrijving'`
+4. Push: `git push origin feature/mijn-feature`
 5. Open een Pull Request
 
 ---
 
-## Licentie
+## 📄 Licentie
 
-Dit project is gelicenseerd onder de [MIT-licentie](LICENSE).  
-Copyright © 2026 Natuurwaarnemer ERP Contributors
+[MIT-licentie](LICENSE) — Copyright © 2026 Natuurwaarnemer ERP Contributors
+
+---
+
+> ☕ **[Buy me a coffee](https://www.buymeacoffee.com/natuurwaarnemer)** — vind je dit project handig? Bedankt!
