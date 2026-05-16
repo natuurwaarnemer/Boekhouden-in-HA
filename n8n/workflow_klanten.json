@@ -80,13 +80,15 @@
         "method": "POST",
         "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
         "sendBody": true,
-        "bodyContentType": "json",
-        "body": {
-          "type": "={{ $json.type }}",
-          "bericht": "={{ $json.bericht }}",
-          "klanten": "={{ $json.klanten }}"
-        },
-        "options": {}
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"{{ $json.type }}\",\n  \"bericht\": \"{{ $json.bericht }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
