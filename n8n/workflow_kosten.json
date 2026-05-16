@@ -68,10 +68,17 @@
       "position": [1100, 300],
       "parameters": {
         "method": "POST",
-        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer JOUW_LONG_LIVED_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"kosten\",\n  \"bericht\": \"Kosten van {{ $('Function: BTW berekenen en saniteren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: BTW berekenen en saniteren').item.json.totaal }})\"\n}",
+        "jsonBody": "={\n  \"state\": \"kosten_opgeslagen\",\n  \"attributes\": {\n    \"type\": \"kosten\",\n    \"bericht\": \"Kosten van {{ $('Function: BTW berekenen en saniteren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: BTW berekenen en saniteren').item.json.totaal }})\"\n  }\n}",
         "options": {
           "response": {
             "response": {

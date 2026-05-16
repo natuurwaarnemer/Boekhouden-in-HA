@@ -68,10 +68,17 @@
       "position": [1100, 300],
       "parameters": {
         "method": "POST",
-        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer JOUW_LONG_LIVED_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"inkoop\",\n  \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: Input valideren').item.json.totaal }})\"\n}",
+        "jsonBody": "={\n  \"state\": \"inkoop_opgeslagen\",\n  \"attributes\": {\n    \"type\": \"inkoop\",\n    \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: Input valideren').item.json.totaal }})\"\n  }\n}",
         "options": {
           "response": {
             "response": {

@@ -12,6 +12,7 @@
 #   n8n_webhook_kosten:  "http://192.168.2.35:5678/webhook/kosten-opslaan"
 #   n8n_webhook_inkoop:  "http://192.168.2.35:5678/webhook/inkoop-opslaan"
 #   n8n_webhook_klant:   "http://192.168.2.35:5678/webhook/klant-opslaan"
+#   ha_long_lived_token: "JOUW_LONG_LIVED_TOKEN_UIT_HA_PROFIEL"
 
 # ---------------------------------------------------------
 # REST COMMANDS — HA naar n8n webhooks
@@ -157,31 +158,36 @@ automation:
       - service: rest_command.n8n_klant_webhook
     mode: single
 
-  - id: automation_erp_bevestiging_ontvangen
-    alias: "ERP: Bevestiging ontvangen van n8n"
-    description: "Verwerk bevestiging van n8n — zet status, reset formulier na 5 sec"
+  - id: automation_erp_status_verwerken
+    alias: "ERP: Status verwerken (state-based)"
+    description: "Triggered wanneer n8n een state zet op input_text.erp_status via /api/states/"
     trigger:
-      - platform: webhook
-        webhook_id: natuurwaarnemer_erp_bevestiging
-        allowed_methods:
-          - POST
+      - platform: state
+        entity_id: input_text.erp_status
+        not_to:
+          - "idle"
+          - "unknown"
+          - ""
     action:
+      - variables:
+          erp_type: "{{ state_attr('input_text.erp_status', 'type') }}"
+          erp_bericht: "{{ state_attr('input_text.erp_status', 'bericht') }}"
       - choose:
 
           # ── KLANT ────────────────────────────────────────────
           - conditions:
               - condition: template
-                value_template: "{{ trigger.json.type == 'klant' }}"
+                value_template: "{{ erp_type == 'klant' }}"
             sequence:
               - service: input_text.set_value
                 target:
                   entity_id: input_text.klant_status
                 data:
-                  value: "✅ {{ trigger.json.bericht }}"
+                  value: "✅ {{ erp_bericht }}"
               - service: persistent_notification.create
                 data:
                   title: "ERP — Klant opgeslagen"
-                  message: "{{ trigger.json.bericht }}"
+                  message: "{{ erp_bericht }}"
                   notification_id: erp_bevestiging_klant
               - delay: "00:00:05"
               - service: input_text.set_value
@@ -201,31 +207,84 @@ automation:
                     - input_text.klant_status
                 data:
                   value: ""
-              - service: input_select.select_option
+
+          # ── KOSTEN ───────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ erp_type == 'kosten' }}"
+            sequence:
+              - service: input_text.set_value
                 target:
-                  entity_id: input_select.klant_type
+                  entity_id: input_text.kosten_status
                 data:
-                  option: "Zakelijk (B2B)"
-              - service: input_select.select_option
+                  value: "✅ {{ erp_bericht }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Kosten opgeslagen"
+                  message: "{{ erp_bericht }}"
+                  notification_id: erp_bevestiging_kosten
+              - delay: "00:00:05"
+              - service: input_text.set_value
                 target:
-                  entity_id: input_select.klant_land
+                  entity_id:
+                    - input_text.kosten_leverancier
+                    - input_text.kosten_omschrijving
+                    - input_text.kosten_datum
+                    - input_text.kosten_status
                 data:
-                  option: "Nederland"
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.kosten_bedrag
+                data:
+                  value: 0
+
+          # ── INKOOP ───────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ erp_type == 'inkoop' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.inkoop_status
+                data:
+                  value: "✅ {{ erp_bericht }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Inkoop opgeslagen"
+                  message: "{{ erp_bericht }}"
+                  notification_id: erp_bevestiging_inkoop
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.inkoop_leverancier
+                    - input_text.inkoop_factuurnummer
+                    - input_text.inkoop_datum
+                    - input_text.inkoop_omschrijving
+                    - input_text.inkoop_status
+                data:
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.inkoop_bedrag
+                data:
+                  value: 0
 
           # ── FACTUUR ──────────────────────────────────────────
           - conditions:
               - condition: template
-                value_template: "{{ trigger.json.type == 'factuur' }}"
+                value_template: "{{ erp_type == 'factuur' }}"
             sequence:
               - service: input_text.set_value
                 target:
                   entity_id: input_text.factuur_status
                 data:
-                  value: "✅ {{ trigger.json.bericht }}"
+                  value: "✅ {{ erp_bericht }}"
               - service: persistent_notification.create
                 data:
                   title: "ERP — Factuur aangemaakt"
-                  message: "{{ trigger.json.bericht }}"
+                  message: "{{ erp_bericht }}"
                   notification_id: erp_bevestiging_factuur
               - delay: "00:00:05"
               - service: input_text.set_value
@@ -255,89 +314,35 @@ automation:
                     - input_number.factuur_regel3_prijs
                 data:
                   value: 0
-              - service: input_select.select_option
-                target:
-                  entity_id:
-                    - input_select.factuur_regel1_btw
-                    - input_select.factuur_regel2_btw
-                    - input_select.factuur_regel3_btw
-                data:
-                  option: "21"
 
-          # ── INKOOP ───────────────────────────────────────────
-          - conditions:
-              - condition: template
-                value_template: "{{ trigger.json.type == 'inkoop' }}"
-            sequence:
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.inkoop_status
-                data:
-                  value: "✅ {{ trigger.json.bericht }}"
-              - service: persistent_notification.create
-                data:
-                  title: "ERP — Inkoop opgeslagen"
-                  message: "{{ trigger.json.bericht }}"
-                  notification_id: erp_bevestiging_inkoop
-              - delay: "00:00:05"
-              - service: input_text.set_value
-                target:
-                  entity_id:
-                    - input_text.inkoop_leverancier
-                    - input_text.inkoop_factuurnummer
-                    - input_text.inkoop_datum
-                    - input_text.inkoop_omschrijving
-                    - input_text.inkoop_status
-                data:
-                  value: ""
-              - service: input_number.set_value
-                target:
-                  entity_id: input_number.inkoop_bedrag
-                data:
-                  value: 0
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.inkoop_btw
-                data:
-                  option: "21"
-
-          # ── KOSTEN ───────────────────────────────────────────
-          - conditions:
-              - condition: template
-                value_template: "{{ trigger.json.type == 'kosten' }}"
-            sequence:
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.kosten_status
-                data:
-                  value: "✅ {{ trigger.json.bericht }}"
-              - service: persistent_notification.create
-                data:
-                  title: "ERP — Kosten opgeslagen"
-                  message: "{{ trigger.json.bericht }}"
-                  notification_id: erp_bevestiging_kosten
-              - delay: "00:00:05"
-              - service: input_text.set_value
-                target:
-                  entity_id:
-                    - input_text.kosten_leverancier
-                    - input_text.kosten_omschrijving
-                    - input_text.kosten_datum
-                    - input_text.kosten_status
-                data:
-                  value: ""
-              - service: input_number.set_value
-                target:
-                  entity_id: input_number.kosten_bedrag
-                data:
-                  value: 0
-              - service: input_select.select_option
-                target:
-                  entity_id: input_select.kosten_btw
-                data:
-                  option: "21"
+      # Altijd afsluiten: reset erp_status naar idle
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: "idle"
     mode: queued
-    max: 4
+    max: 5
+
+  # ── WATCHDOG: stuck status opruimen ──────────────────────────
+  - id: automation_erp_watchdog
+    alias: "ERP: Watchdog — stuck status opruimen"
+    description: "Als erp_status langer dan 5 minuten niet idle is, reset naar idle"
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: template
+        value_template: >
+          {{ states('input_text.erp_status') not in ['idle', 'unknown', '']
+             and (now() - states.input_text.erp_status.last_changed).total_seconds() > 300 }}
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: "idle"
+    mode: single
 
 # ---------------------------------------------------------
 # INPUT SELECT
@@ -456,6 +461,12 @@ input_select:
 # INPUT TEXT
 # ---------------------------------------------------------
 input_text:
+
+  erp_status:
+    name: "ERP Status"
+    initial: "idle"
+    max: 255
+    icon: mdi:check-circle
 
   # Verkopen
   factuur_project:

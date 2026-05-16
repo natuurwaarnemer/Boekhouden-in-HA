@@ -189,11 +189,39 @@
       }
     },
     {
+      "id": "node_notify_ha",
+      "name": "HTTP: HA terugkoppeling",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2700, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer JOUW_LONG_LIVED_TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"state\": \"factuur_aangemaakt\",\n  \"attributes\": {\n    \"type\": \"factuur\",\n    \"bericht\": \"Factuur aangemaakt\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
       "id": "node_respond",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2700, 300],
+      "position": [2900, 300],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": true, \"bericht\": \"Factuur aangemaakt\", \"factuurnummer\": \"{{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }}\" }",
@@ -250,6 +278,9 @@
       "main": [[{ "node": "Send Email: Factuur versturen", "type": "main", "index": 0 }]]
     },
     "Send Email: Factuur versturen": {
+      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+    },
+    "HTTP: HA terugkoppeling": {
       "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
