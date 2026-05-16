@@ -6,7 +6,10 @@
       "name": "Webhook: Klant opslaan",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "path": "klant-opslaan",
         "httpMethod": "POST",
@@ -19,7 +22,10 @@
       "name": "Function: Input valideren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nreturn [{ json: {\n  naam:           sanitize(b.naam),\n  type:           sanitize(b.type || 'klant'),\n  contactpersoon: sanitize(b.contactpersoon),\n  adres:          sanitize(b.adres),\n  postcode:       sanitize(b.postcode),\n  stad:           sanitize(b.stad),\n  land:           sanitize(b.land || 'Nederland'),\n  email:          sanitize(b.email),\n  telefoon:       sanitize(b.telefoon),\n  btwnummer:      sanitize(b.btwnummer),\n  kvknummer:      sanitize(b.kvknummer),\n  iban:           sanitize(b.iban),\n  notities:       sanitize(b.notities)\n}}];"
       }
@@ -29,7 +35,10 @@
       "name": "MySQL: Klant opslaan (upsert)",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes)\nVALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.stad }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btwnummer }}', '{{ $json.kvknummer }}', '{{ $json.iban }}', '{{ $json.notities }}')\nON DUPLICATE KEY UPDATE\n  type=VALUES(type), contact_person=VALUES(contact_person), address=VALUES(address),\n  postal_code=VALUES(postal_code), city=VALUES(city), country=VALUES(country),\n  email=VALUES(email), phone=VALUES(phone), vat_number=VALUES(vat_number),\n  kvk_number=VALUES(kvk_number), iban=VALUES(iban), notes=VALUES(notes);",
@@ -47,7 +56,10 @@
       "name": "MySQL: Alle klanten ophalen",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT name FROM customers ORDER BY name ASC;",
@@ -65,7 +77,10 @@
       "name": "Function: Klantenlijst opbouwen",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
         "functionCode": "const rows = items.map(i => i.json.name).filter(Boolean);\nconst naam = $node['Function: Input valideren'].json.naam;\nreturn [{ json: {\n  klanten: rows,\n  type: 'klant',\n  bericht: `Klant '${naam}' opgeslagen. ${rows.length} klant(en) in systeem.`\n}}];"
       }
@@ -75,13 +90,29 @@
       "name": "HTTP: HA terugkoppeling",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 300],
+      "position": [
+        1300,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.haLongLivedToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"{{ $json.type }}\",\n  \"bericht\": \"{{ $json.bericht }}\"\n}",
+        "jsonBody": "={\n  \"state\": \"klant_opgeslagen\",\n  \"attributes\": {\n    \"type\": \"{{ $json.type }}\",\n    \"bericht\": \"{{ $json.bericht }}\"\n  }\n}",
         "options": {
           "response": {
             "response": {
@@ -96,7 +127,10 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1500, 300],
+      "position": [
+        1500,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ success: true, type: 'klant', bericht: $('Function: Klantenlijst opbouwen').item.json.bericht, klanten: $('Function: Klantenlijst opbouwen').item.json.klanten }) }}",
@@ -106,22 +140,70 @@
   ],
   "connections": {
     "Webhook: Klant opslaan": {
-      "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: Input valideren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: Input valideren": {
-      "main": [[{ "node": "MySQL: Klant opslaan (upsert)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Klant opslaan (upsert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Klant opslaan (upsert)": {
-      "main": [[{ "node": "MySQL: Alle klanten ophalen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Alle klanten ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Alle klanten ophalen": {
-      "main": [[{ "node": "Function: Klantenlijst opbouwen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: Klantenlijst opbouwen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: Klantenlijst opbouwen": {
-      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP: HA terugkoppeling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP: HA terugkoppeling": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -131,5 +213,12 @@
   "meta": {
     "instanceId": "natuurwaarnemer-erp"
   },
-  "tags": [{ "name": "ERP" }, { "name": "Klanten" }]
+  "tags": [
+    {
+      "name": "ERP"
+    },
+    {
+      "name": "Klanten"
+    }
+  ]
 }

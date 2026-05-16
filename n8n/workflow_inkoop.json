@@ -6,7 +6,10 @@
       "name": "Webhook: Inkoop opslaan",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "path": "inkoop-opslaan",
         "httpMethod": "POST",
@@ -19,7 +22,10 @@
       "name": "Function: Input valideren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nconst bedrag = parseFloat(b.bedrag) || 0;\nconst btwPct = parseFloat(b.btw) || 0;\nconst btwBedrag = Math.round(bedrag * btwPct) / 100;\nconst totaal = Math.round((bedrag + btwBedrag) * 100) / 100;\nreturn [{ json: {\n  datum:         sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  leverancier:   sanitize(b.leverancier),\n  factuurnummer: sanitize(b.factuurnummer),\n  omschrijving:  sanitize(b.omschrijving),\n  bedrag:        bedrag,\n  btw_pct:       btwPct,\n  btw_bedrag:    btwBedrag,\n  totaal:        totaal,\n  grootboek:     sanitize(b.grootboek)\n}}];"
       }
@@ -29,7 +35,10 @@
       "name": "MySQL: Inkoop invoegen",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO expenses (date, supplier, invoice_number, description, amount, btw_percentage, btw_amount, total, ledger_account_id)\nSELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.factuurnummer }}', '{{ $json.omschrijving }}', {{ $json.bedrag }}, {{ $json.btw_pct }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
@@ -47,7 +56,10 @@
       "name": "MySQL: Grootboekboeking inkoop",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', {{ $json.bedrag }}, 0, '{{ $json.factuurnummer }}', 'inkoop'\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
@@ -65,13 +77,29 @@
       "name": "HTTP: HA terugkoppeling",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.haLongLivedToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"inkoop\",\n  \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: Input valideren').item.json.totaal }})\"\n}",
+        "jsonBody": "={\n  \"state\": \"inkoop_opgeslagen\",\n  \"attributes\": {\n    \"type\": \"inkoop\",\n    \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (€ {{ $('Function: Input valideren').item.json.totaal }})\"\n  }\n}",
         "options": {
           "response": {
             "response": {
@@ -86,29 +114,72 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1300, 300],
+      "position": [
+        1300,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, type: 'inkoop', bericht: 'Inkoop van ' + $('Function: Input valideren').item.json.leverancier + ' opgeslagen (\u20ac ' + $('Function: Input valideren').item.json.totaal + ')' }) }}",
+        "responseBody": "={{ JSON.stringify({ success: true, type: 'inkoop', bericht: 'Inkoop van ' + $('Function: Input valideren').item.json.leverancier + ' opgeslagen (€ ' + $('Function: Input valideren').item.json.totaal + ')' }) }}",
         "options": {}
       }
     }
   ],
   "connections": {
     "Webhook: Inkoop opslaan": {
-      "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: Input valideren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: Input valideren": {
-      "main": [[{ "node": "MySQL: Inkoop invoegen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Inkoop invoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Inkoop invoegen": {
-      "main": [[{ "node": "MySQL: Grootboekboeking inkoop", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Grootboekboeking inkoop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Grootboekboeking inkoop": {
-      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP: HA terugkoppeling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP: HA terugkoppeling": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -118,5 +189,12 @@
   "meta": {
     "instanceId": "natuurwaarnemer-erp"
   },
-  "tags": [{ "name": "ERP" }, { "name": "Inkoop" }]
+  "tags": [
+    {
+      "name": "ERP"
+    },
+    {
+      "name": "Inkoop"
+    }
+  ]
 }

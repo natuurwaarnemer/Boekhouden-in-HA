@@ -6,7 +6,10 @@
       "name": "Webhook: Kosten opslaan",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "path": "kosten-opslaan",
         "httpMethod": "POST",
@@ -19,7 +22,10 @@
       "name": "Function: BTW berekenen en saniteren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nconst bedrag = parseFloat(b.bedrag) || 0;\nconst btwPct = parseFloat(b.btw) || 0;\nconst btwBedrag = Math.round(bedrag * btwPct) / 100;\nconst totaal = Math.round((bedrag + btwBedrag) * 100) / 100;\nreturn [{ json: {\n  datum:        sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  leverancier:  sanitize(b.leverancier),\n  omschrijving: sanitize(b.omschrijving),\n  bedrag:       bedrag,\n  btw_pct:      btwPct,\n  btw_bedrag:   btwBedrag,\n  totaal:       totaal,\n  grootboek:    sanitize(b.grootboek)\n}}];"
       }
@@ -29,7 +35,10 @@
       "name": "MySQL: Kosten invoegen",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO expenses (date, supplier, description, amount, btw_percentage, btw_amount, total, ledger_account_id)\nSELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.omschrijving }}', {{ $json.bedrag }}, {{ $json.btw_pct }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
@@ -47,7 +56,10 @@
       "name": "MySQL: Grootboekboeking kosten",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', {{ $json.bedrag }}, 0, '{{ $json.leverancier }}', 'inkoop'\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
@@ -65,13 +77,29 @@
       "name": "HTTP: HA terugkoppeling",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.haLongLivedToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"type\": \"kosten\",\n  \"bericht\": \"Kosten van {{ $('Function: BTW berekenen en saniteren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: BTW berekenen en saniteren').item.json.totaal }})\"\n}",
+        "jsonBody": "={\n  \"state\": \"kosten_opgeslagen\",\n  \"attributes\": {\n    \"type\": \"kosten\",\n    \"bericht\": \"Kosten van {{ $('Function: BTW berekenen en saniteren').item.json.leverancier }} opgeslagen (€ {{ $('Function: BTW berekenen en saniteren').item.json.totaal }})\"\n  }\n}",
         "options": {
           "response": {
             "response": {
@@ -86,29 +114,72 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1300, 300],
+      "position": [
+        1300,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, type: 'kosten', bericht: 'Kosten van ' + $('Function: BTW berekenen en saniteren').item.json.leverancier + ' opgeslagen (\u20ac ' + $('Function: BTW berekenen en saniteren').item.json.totaal + ')' }) }}",
+        "responseBody": "={{ JSON.stringify({ success: true, type: 'kosten', bericht: 'Kosten van ' + $('Function: BTW berekenen en saniteren').item.json.leverancier + ' opgeslagen (€ ' + $('Function: BTW berekenen en saniteren').item.json.totaal + ')' }) }}",
         "options": {}
       }
     }
   ],
   "connections": {
     "Webhook: Kosten opslaan": {
-      "main": [[{ "node": "Function: BTW berekenen en saniteren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: BTW berekenen en saniteren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: BTW berekenen en saniteren": {
-      "main": [[{ "node": "MySQL: Kosten invoegen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Kosten invoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Kosten invoegen": {
-      "main": [[{ "node": "MySQL: Grootboekboeking kosten", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "MySQL: Grootboekboeking kosten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "MySQL: Grootboekboeking kosten": {
-      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP: HA terugkoppeling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP: HA terugkoppeling": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -118,5 +189,12 @@
   "meta": {
     "instanceId": "natuurwaarnemer-erp"
   },
-  "tags": [{ "name": "ERP" }, { "name": "Kosten" }]
+  "tags": [
+    {
+      "name": "ERP"
+    },
+    {
+      "name": "Kosten"
+    }
+  ]
 }

@@ -1,12 +1,15 @@
 {
-  "name": "Natuurwaarnemer ERP \u2014 Factuur aanmaken",
+  "name": "Natuurwaarnemer ERP — Factuur aanmaken",
   "nodes": [
     {
       "id": "node_webhook",
       "name": "Webhook: Factuur aanmaken",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "path": "factuur-aanmaken",
         "httpMethod": "POST",
@@ -19,7 +22,10 @@
       "name": "Function: Input valideren en saniteren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nreturn [{ json: {\n  klant: sanitize(b.klant),\n  regels: (b.regels || []).map(r => ({\n    omschrijving: sanitize(r.omschrijving),\n    aantal: parseFloat(r.aantal) || 1,\n    prijs: parseFloat(r.prijs) || 0,\n    btw_tarief: parseFloat(r.btw_tarief) || 21\n  })),\n  notities: sanitize(b.notities || '')\n}}];"
       }
@@ -29,7 +35,10 @@
       "name": "Execute: Klant ophalen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "parameters": {
         "command": "=sqlite3 -json /data/gippetto.db \"SELECT * FROM customers WHERE name='{{ $json.klant }}' LIMIT 1\""
       }
@@ -39,7 +48,10 @@
       "name": "Execute: Teller atomisch ophogen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "parameters": {
         "command": "sqlite3 /data/gippetto.db \"UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT) WHERE key = 'invoice_counter'\" && sqlite3 -json /data/gippetto.db \"SELECT value as invoice_counter FROM settings WHERE key = 'invoice_counter'\""
       }
@@ -49,7 +61,10 @@
       "name": "Execute: Bedrijfsinstellingen ophalen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1100, 480],
+      "position": [
+        1100,
+        480
+      ],
       "parameters": {
         "command": "sqlite3 -json /data/gippetto.db \"SELECT value FROM settings WHERE key = 'company_email'\""
       }
@@ -59,7 +74,10 @@
       "name": "Function: Factuurnummer genereren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
         "functionCode": "const body = $('Function: Input valideren en saniteren').first().json;\nconst customerRaw = $('Execute: Klant ophalen').first().json.stdout || '[]';\nconst customer = JSON.parse(customerRaw)[0] || {};\nconst counterRaw = $('Execute: Teller atomisch ophogen').first().json.stdout || '[{\"invoice_counter\":\"1\"}]';\nconst counterArr = JSON.parse(counterRaw);\nconst counter = counterArr[0] ? counterArr[0].invoice_counter : '1';\nconst settingsRaw = $('Execute: Bedrijfsinstellingen ophalen').first().json.stdout || '[{\"value\":\"\"}]';\nconst settings = JSON.parse(settingsRaw)[0] || {};\nconst year = new Date().getFullYear();\nconst num = String(counter).padStart(4, '0');\nconst invoice_number = `F${year}-${num}`;\nreturn [{ json: {\n  body,\n  customer,\n  invoice_number,\n  company_email: settings.value || ''\n}}];"
       }
@@ -69,7 +87,10 @@
       "name": "Function: BTW berekenen en data samenvoegen",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1300, 300],
+      "position": [
+        1300,
+        300
+      ],
       "parameters": {
         "functionCode": "const data = $input.first().json;\nconst body = data.body;\nconst today = new Date().toISOString().split('T')[0];\nconst dueDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];\nconst regels = body.regels || [];\nlet subtotal = 0;\nlet btw_total = 0;\nconst regelsMet = regels.map(r => {\n  const bedrag = Math.round(r.aantal * r.prijs * 100) / 100;\n  const btw = Math.round(bedrag * r.btw_tarief) / 100;\n  subtotal += bedrag;\n  btw_total += btw;\n  return { ...r, bedrag, btw };\n});\nsubtotal = Math.round(subtotal * 100) / 100;\nbtw_total = Math.round(btw_total * 100) / 100;\nconst total = Math.round((subtotal + btw_total) * 100) / 100;\nreturn [{ json: {\n  ...data,\n  regels: regelsMet,\n  invoice_date: today,\n  due_date: dueDate,\n  subtotal,\n  btw_total,\n  total\n}}];"
       }
@@ -79,9 +100,12 @@
       "name": "Function: HTML factuur genereren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1500, 300],
+      "position": [
+        1500,
+        300
+      ],
       "parameters": {
-        "functionCode": "function esc(str) {\n  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\n}\nfunction eur(n) {\n  return '\u20ac\u00a0' + parseFloat(n||0).toFixed(2).replace('.',',');\n}\nconst d = $input.first().json;\nconst c = d.customer || {};\nconst regels = d.regels || [];\nconst rows = regels.map(r =>\n  `<tr><td>${esc(r.omschrijving)}</td><td style=\"text-align:right\">${esc(r.aantal)}</td><td style=\"text-align:right\">${eur(r.prijs)}</td><td style=\"text-align:right\">${r.btw_tarief}%</td><td style=\"text-align:right\">${eur(r.bedrag)}</td></tr>`\n).join('');\nconst html = `<!DOCTYPE html><html lang=\"nl\"><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:40px}h1{color:#1a5276}.tbl{width:100%;border-collapse:collapse;margin-top:20px}.tbl th{background:#1a5276;color:#fff;padding:8px;text-align:left}.tbl td{padding:6px 8px;border-bottom:1px solid #ddd}.totals{float:right;margin-top:20px;width:300px}.totals td{padding:4px 8px}.totals .bold{font-weight:bold;border-top:2px solid #1a5276}</style></head><body><table style=\"width:100%\"><tr><td><h1>FACTUUR</h1><p>Factuurnummer: <strong>${esc(d.invoice_number)}</strong><br>Datum: ${esc(d.invoice_date)}<br>Vervaldatum: ${esc(d.due_date)}</p></td><td style=\"text-align:right\"><p><strong>${esc(c.name)}</strong><br>${esc(c.address)}<br>${esc(c.postal_code)} ${esc(c.city)}<br>${esc(c.country)}<br>BTW: ${esc(c.vat_number)}<br>KVK: ${esc(c.kvk_number)}</p></td></tr></table><table class=\"tbl\"><thead><tr><th>Omschrijving</th><th style=\"text-align:right\">Aantal</th><th style=\"text-align:right\">Prijs</th><th style=\"text-align:right\">BTW</th><th style=\"text-align:right\">Bedrag</th></tr></thead><tbody>${rows}</tbody></table><table class=\"totals\"><tr><td>Subtotaal</td><td style=\"text-align:right\">${eur(d.subtotal)}</td></tr><tr><td>BTW</td><td style=\"text-align:right\">${eur(d.btw_total)}</td></tr><tr class=\"bold\"><td><strong>Totaal</strong></td><td style=\"text-align:right\"><strong>${eur(d.total)}</strong></td></tr></table></body></html>`;\nconst buf = Buffer.from(html, 'utf8');\nreturn [{ json: d, binary: { html_file: await this.helpers.prepareBinaryData(buf, 'factuur.html', 'text/html') } }];"
+        "functionCode": "function esc(str) {\n  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\n}\nfunction eur(n) {\n  return '€ ' + parseFloat(n||0).toFixed(2).replace('.',',');\n}\nconst d = $input.first().json;\nconst c = d.customer || {};\nconst regels = d.regels || [];\nconst rows = regels.map(r =>\n  `<tr><td>${esc(r.omschrijving)}</td><td style=\"text-align:right\">${esc(r.aantal)}</td><td style=\"text-align:right\">${eur(r.prijs)}</td><td style=\"text-align:right\">${r.btw_tarief}%</td><td style=\"text-align:right\">${eur(r.bedrag)}</td></tr>`\n).join('');\nconst html = `<!DOCTYPE html><html lang=\"nl\"><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:40px}h1{color:#1a5276}.tbl{width:100%;border-collapse:collapse;margin-top:20px}.tbl th{background:#1a5276;color:#fff;padding:8px;text-align:left}.tbl td{padding:6px 8px;border-bottom:1px solid #ddd}.totals{float:right;margin-top:20px;width:300px}.totals td{padding:4px 8px}.totals .bold{font-weight:bold;border-top:2px solid #1a5276}</style></head><body><table style=\"width:100%\"><tr><td><h1>FACTUUR</h1><p>Factuurnummer: <strong>${esc(d.invoice_number)}</strong><br>Datum: ${esc(d.invoice_date)}<br>Vervaldatum: ${esc(d.due_date)}</p></td><td style=\"text-align:right\"><p><strong>${esc(c.name)}</strong><br>${esc(c.address)}<br>${esc(c.postal_code)} ${esc(c.city)}<br>${esc(c.country)}<br>BTW: ${esc(c.vat_number)}<br>KVK: ${esc(c.kvk_number)}</p></td></tr></table><table class=\"tbl\"><thead><tr><th>Omschrijving</th><th style=\"text-align:right\">Aantal</th><th style=\"text-align:right\">Prijs</th><th style=\"text-align:right\">BTW</th><th style=\"text-align:right\">Bedrag</th></tr></thead><tbody>${rows}</tbody></table><table class=\"totals\"><tr><td>Subtotaal</td><td style=\"text-align:right\">${eur(d.subtotal)}</td></tr><tr><td>BTW</td><td style=\"text-align:right\">${eur(d.btw_total)}</td></tr><tr class=\"bold\"><td><strong>Totaal</strong></td><td style=\"text-align:right\"><strong>${eur(d.total)}</strong></td></tr></table></body></html>`;\nconst buf = Buffer.from(html, 'utf8');\nreturn [{ json: d, binary: { html_file: await this.helpers.prepareBinaryData(buf, 'factuur.html', 'text/html') } }];"
       }
     },
     {
@@ -89,7 +113,10 @@
       "name": "HTTP Request: Gotenberg PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1700, 300],
+      "position": [
+        1700,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "http://localhost:3000/forms/chromium/convert/html",
@@ -119,7 +146,10 @@
       "name": "Write Binary File: PDF opslaan",
       "type": "n8n-nodes-base.writeBinaryFile",
       "typeVersion": 1,
-      "position": [1900, 300],
+      "position": [
+        1900,
+        300
+      ],
       "parameters": {
         "fileName": "=/data/facturen/{{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }}.pdf",
         "dataPropertyName": "pdf_data",
@@ -131,7 +161,10 @@
       "name": "Execute: Factuur invoegen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2100, 200],
+      "position": [
+        2100,
+        200
+      ],
       "parameters": {
         "command": "=sqlite3 /data/gippetto.db \"INSERT INTO invoices (invoice_number, customer_id, date, due_date, subtotal, btw_total, total, status, pdf_path, notes) VALUES ('{{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_number }}', {{ $node['Function: BTW berekenen en data samenvoegen'].json.customer.id || 0 }}, '{{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_date }}', '{{ $node['Function: BTW berekenen en data samenvoegen'].json.due_date }}', {{ $node['Function: BTW berekenen en data samenvoegen'].json.subtotal }}, {{ $node['Function: BTW berekenen en data samenvoegen'].json.btw_total }}, {{ $node['Function: BTW berekenen en data samenvoegen'].json.total }}, 'concept', '/data/facturen/{{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_number }}.pdf', '{{ $node['Function: BTW berekenen en data samenvoegen'].json.body.notities }}');\""
       }
@@ -141,7 +174,10 @@
       "name": "Function: Factuurregels SQL opbouwen",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [2100, 380],
+      "position": [
+        2100,
+        380
+      ],
       "parameters": {
         "functionCode": "const data = $('Function: BTW berekenen en data samenvoegen').first().json;\nconst regels = data.regels || [];\nconst inv = data.invoice_number.replace(/'/g, \"''\");\nconst item_queries = regels.map(r => {\n  const omschr = String(r.omschrijving || '').replace(/'/g, \"''\");\n  return `INSERT INTO invoice_items (invoice_number, description, quantity, unit_price, btw_rate, btw_amount, total) VALUES ('${inv}', '${omschr}', ${r.aantal}, ${r.prijs}, ${r.btw_tarief}, ${r.btw}, ${r.bedrag})`;\n});\nreturn [{ json: { item_queries } }];"
       }
@@ -151,7 +187,10 @@
       "name": "Execute: Factuurregels invoegen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2300, 380],
+      "position": [
+        2300,
+        380
+      ],
       "parameters": {
         "command": "=sqlite3 /data/gippetto.db \"{{ $json.item_queries.join(';') }}\""
       }
@@ -161,7 +200,10 @@
       "name": "Execute: Grootboekboekingen",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2100, 560],
+      "position": [
+        2100,
+        560
+      ],
       "parameters": {
         "command": "=sqlite3 /data/gippetto.db \"INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_date }}', id, 'Factuur {{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_number }}', 0, {{ $node['Function: BTW berekenen en data samenvoegen'].json.total }}, '{{ $node['Function: BTW berekenen en data samenvoegen'].json.invoice_number }}', 'verkoop' FROM ledger_accounts WHERE type = 'omzet' LIMIT 1;\""
       }
@@ -171,13 +213,16 @@
       "name": "Send Email: Factuur versturen",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [2500, 380],
+      "position": [
+        2500,
+        380
+      ],
       "parameters": {
         "fromEmail": "={{ $('Function: Factuurnummer genereren').item.json.company_email }}",
         "toEmail": "={{ $('Function: BTW berekenen en data samenvoegen').item.json.customer.email }}",
         "subject": "=Factuur {{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }}",
         "emailFormat": "text",
-        "text": "=Geachte {{ $('Function: BTW berekenen en data samenvoegen').item.json.customer.name }},\n\nHierbij ontvangt u factuur {{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }} met een totaalbedrag van \u20ac{{ $('Function: BTW berekenen en data samenvoegen').item.json.total }}.\n\nVervaldatum: {{ $('Function: BTW berekenen en data samenvoegen').item.json.due_date }}\n\nMet vriendelijke groet",
+        "text": "=Geachte {{ $('Function: BTW berekenen en data samenvoegen').item.json.customer.name }},\n\nHierbij ontvangt u factuur {{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }} met een totaalbedrag van €{{ $('Function: BTW berekenen en data samenvoegen').item.json.total }}.\n\nVervaldatum: {{ $('Function: BTW berekenen en data samenvoegen').item.json.due_date }}\n\nMet vriendelijke groet",
         "attachments": "pdf_data",
         "options": {}
       },
@@ -193,64 +238,223 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2700, 300],
+      "position": [
+        2900,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": true, \"bericht\": \"Factuur aangemaakt\", \"factuurnummer\": \"{{ $('Function: BTW berekenen en data samenvoegen').item.json.invoice_number }}\" }",
         "options": {}
       }
+    },
+    {
+      "id": "node_notify_ha",
+      "name": "HTTP: HA terugkoppeling",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2500,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.17:8123/api/states/input_text.erp_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.haLongLivedToken}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"state\": \"factuur_aangemaakt\",\n  \"attributes\": {\n    \"type\": \"factuur\",\n    \"bericht\": \"Factuur aangemaakt\"\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
     }
   ],
   "connections": {
     "Webhook: Factuur aanmaken": {
-      "main": [[{ "node": "Function: Input valideren en saniteren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: Input valideren en saniteren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: Input valideren en saniteren": {
-      "main": [[{ "node": "Execute: Klant ophalen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Execute: Klant ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Execute: Klant ophalen": {
-      "main": [[{ "node": "Execute: Teller atomisch ophogen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Execute: Teller atomisch ophogen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Execute: Teller atomisch ophogen": {
       "main": [
         [
-          { "node": "Function: Factuurnummer genereren", "type": "main", "index": 0 },
-          { "node": "Execute: Bedrijfsinstellingen ophalen", "type": "main", "index": 0 }
+          {
+            "node": "Function: Factuurnummer genereren",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute: Bedrijfsinstellingen ophalen",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Execute: Bedrijfsinstellingen ophalen": {
-      "main": [[{ "node": "Function: Factuurnummer genereren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: Factuurnummer genereren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: Factuurnummer genereren": {
-      "main": [[{ "node": "Function: BTW berekenen en data samenvoegen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: BTW berekenen en data samenvoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: BTW berekenen en data samenvoegen": {
-      "main": [[{ "node": "Function: HTML factuur genereren", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Function: HTML factuur genereren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Function: HTML factuur genereren": {
-      "main": [[{ "node": "HTTP Request: Gotenberg PDF", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Gotenberg PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP Request: Gotenberg PDF": {
-      "main": [[{ "node": "Write Binary File: PDF opslaan", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Write Binary File: PDF opslaan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Write Binary File: PDF opslaan": {
       "main": [
         [
-          { "node": "Execute: Factuur invoegen", "type": "main", "index": 0 },
-          { "node": "Function: Factuurregels SQL opbouwen", "type": "main", "index": 0 },
-          { "node": "Execute: Grootboekboekingen", "type": "main", "index": 0 }
+          {
+            "node": "Execute: Factuur invoegen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Function: Factuurregels SQL opbouwen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute: Grootboekboekingen",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Function: Factuurregels SQL opbouwen": {
-      "main": [[{ "node": "Execute: Factuurregels invoegen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Execute: Factuurregels invoegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Execute: Factuurregels invoegen": {
-      "main": [[{ "node": "Send Email: Factuur versturen", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Email: Factuur versturen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Email: Factuur versturen": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP: HA terugkoppeling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: HA terugkoppeling": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -262,5 +466,12 @@
   "meta": {
     "instanceId": "natuurwaarnemer-erp"
   },
-  "tags": [{ "name": "ERP" }, { "name": "Factuur" }]
+  "tags": [
+    {
+      "name": "ERP"
+    },
+    {
+      "name": "Factuur"
+    }
+  ]
 }
