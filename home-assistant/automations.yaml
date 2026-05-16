@@ -1,14 +1,15 @@
 # =============================================================
 # Natuurwaarnemer ERP — Home Assistant Automations
 # =============================================================
-# Voeg deze automations toe aan /config/automations.yaml
 # Vereist entries in secrets.yaml:
-#   n8n_webhook_factuur: "http://n8n:5678/webhook/factuur-aanmaken"
-#   n8n_webhook_kosten:  "http://n8n:5678/webhook/kosten-opslaan"
+#   n8n_webhook_factuur: "http://<n8n-ip>:5678/webhook/factuur-aanmaken"
+#   n8n_webhook_kosten:  "http://<n8n-ip>:5678/webhook/kosten-opslaan"
+#   n8n_webhook_klant:   "http://<n8n-ip>:5678/webhook/klant-opslaan"
 #
 # Voeg ook de rest_command sectie toe aan configuration.yaml:
 # ---------------------------------------------------------
 # rest_command:
+#
 #   n8n_factuur_webhook:
 #     url: !secret n8n_webhook_factuur
 #     method: POST
@@ -45,6 +46,27 @@
 #         "datum":        "{{ states('input_text.kosten_datum') }}",
 #         "grootboek":    "{{ states('input_select.kosten_grootboek') }}"
 #       }
+#
+#   n8n_klant_webhook:
+#     url: !secret n8n_webhook_klant
+#     method: POST
+#     content_type: application/json
+#     payload: >
+#       {
+#         "naam":           "{{ states('input_text.klant_naam') }}",
+#         "type":           "{{ states('input_select.klant_type') }}",
+#         "contactpersoon": "{{ states('input_text.klant_contactpersoon') }}",
+#         "adres":          "{{ states('input_text.klant_adres') }}",
+#         "postcode":       "{{ states('input_text.klant_postcode') }}",
+#         "plaats":         "{{ states('input_text.klant_stad') }}",
+#         "land":           "{{ states('input_select.klant_land') }}",
+#         "email":          "{{ states('input_text.klant_email') }}",
+#         "telefoon":       "{{ states('input_text.klant_telefoon') }}",
+#         "btw_nummer":     "{{ states('input_text.klant_btwnummer') }}",
+#         "kvk_nummer":     "{{ states('input_text.klant_kvknummer') }}",
+#         "iban":           "{{ states('input_text.klant_iban') }}",
+#         "notities":       "{{ states('input_text.klant_notities') }}"
+#       }
 # ---------------------------------------------------------
 
 - id: automation_factuur_genereren
@@ -64,7 +86,7 @@
 
 - id: automation_kosten_opslaan
   alias: "ERP: Kosten opslaan"
-  description: "Stuur kostendata naar n8n voor opslaan in SQLite en grootboek"
+  description: "Stuur kostendata naar n8n voor opslaan in database en grootboek"
   trigger:
     - platform: state
       entity_id: input_button.kosten_opslaan
@@ -77,9 +99,24 @@
     - service: rest_command.n8n_kosten_webhook
   mode: single
 
+- id: automation_klant_opslaan
+  alias: "ERP: Klant opslaan"
+  description: "Stuur klantdata naar n8n voor opslaan in database"
+  trigger:
+    - platform: state
+      entity_id: input_button.klant_opslaan
+  action:
+    - service: input_text.set_value
+      target:
+        entity_id: input_text.klant_status
+      data:
+        value: "⏳ Bezig met opslaan..."
+    - service: rest_command.n8n_klant_webhook
+  mode: single
+
 - id: automation_erp_bevestiging_ontvangen
   alias: "ERP: Bevestiging ontvangen"
-  description: "Verwerk bevestiging van n8n na factuur/kosten actie"
+  description: "Verwerk bevestiging van n8n na factuur/kosten/klant actie"
   trigger:
     - platform: webhook
       webhook_id: natuurwaarnemer_erp_bevestiging
@@ -88,7 +125,7 @@
   action:
     - service: input_text.set_value
       target:
-        entity_id: input_text.factuur_status
+        entity_id: input_text.klant_status
       data:
         value: "{{ trigger.json.bericht }}"
     - service: persistent_notification.create
