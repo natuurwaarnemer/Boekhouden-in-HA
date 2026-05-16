@@ -21,33 +21,27 @@
       "typeVersion": 1,
       "position": [460, 300],
       "parameters": {
-        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nreturn [{ json: {\n  naam: sanitize(b.naam),\n  type: sanitize(b.type),\n  contactpersoon: sanitize(b.contactpersoon),\n  adres: sanitize(b.adres),\n  postcode: sanitize(b.postcode),\n  stad: sanitize(b.stad),\n  land: sanitize(b.land),\n  email: sanitize(b.email),\n  telefoon: sanitize(b.telefoon),\n  btwnummer: sanitize(b.btwnummer),\n  kvknummer: sanitize(b.kvknummer),\n  iban: sanitize(b.iban),\n  notities: sanitize(b.notities)\n}}];"
+        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nreturn [{ json: {\n  naam:          sanitize(b.naam),\n  type:          sanitize(b.type || 'klant'),\n  contactpersoon: sanitize(b.contactpersoon),\n  adres:         sanitize(b.adres),\n  postcode:      sanitize(b.postcode),\n  plaats:        sanitize(b.plaats),\n  land:          sanitize(b.land || 'Nederland'),\n  email:         sanitize(b.email),\n  telefoon:      sanitize(b.telefoon),\n  btw_nummer:    sanitize(b.btw_nummer),\n  kvk_nummer:    sanitize(b.kvk_nummer),\n  iban:          sanitize(b.iban),\n  notities:      sanitize(b.notities)\n}}];"
       }
     },
     {
       "id": "node_upsert",
-      "name": "SQLite: Klant opslaan (upsert)",
-      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "name": "Execute: Klant opslaan (upsert)",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [680, 300],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes)\nVALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.stad }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btwnummer }}', '{{ $json.kvknummer }}', '{{ $json.iban }}', '{{ $json.notities }}')\nON CONFLICT(name) DO UPDATE SET\n  type=excluded.type, contact_person=excluded.contact_person,\n  address=excluded.address, postal_code=excluded.postal_code,\n  city=excluded.city, country=excluded.country,\n  email=excluded.email, phone=excluded.phone,\n  vat_number=excluded.vat_number, kvk_number=excluded.kvk_number,\n  iban=excluded.iban, notes=excluded.notes,\n  updated_at=CURRENT_TIMESTAMP",
-        "options": {},
-        "db_path": "/data/erp.db"
+        "command": "=sqlite3 /data/erp.db \"INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes) VALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.plaats }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btw_nummer }}', '{{ $json.kvk_nummer }}', '{{ $json.iban }}', '{{ $json.notities }}') ON CONFLICT(name) DO UPDATE SET type=excluded.type, contact_person=excluded.contact_person, address=excluded.address, postal_code=excluded.postal_code, city=excluded.city, country=excluded.country, email=excluded.email, phone=excluded.phone, vat_number=excluded.vat_number, kvk_number=excluded.kvk_number, iban=excluded.iban, notes=excluded.notes;\""
       }
     },
     {
       "id": "node_get_all",
-      "name": "SQLite: Alle klanten ophalen",
-      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "name": "Execute: Alle klanten ophalen",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [900, 300],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT name FROM customers ORDER BY name ASC",
-        "options": {},
-        "db_path": "/data/erp.db"
+        "command": "sqlite3 /data/erp.db \"SELECT name FROM customers ORDER BY name ASC;\""
       }
     },
     {
@@ -57,7 +51,7 @@
       "typeVersion": 1,
       "position": [1100, 300],
       "parameters": {
-        "functionCode": "const rows = items.map(i => i.json.name).filter(Boolean);\nconst naam = $node['Function: Input valideren'].json.naam;\nreturn [{ json: {\n  klanten: rows,\n  bericht: `Klant '${naam}' opgeslagen. ${rows.length} klant(en) in het systeem.`,\n  success: true\n}}];"
+        "functionCode": "const output = items[0].json.stdout || '';\nconst rows = output.split('\\n').map(r => r.trim()).filter(Boolean);\nconst naam = $node['Function: Input valideren'].json.naam;\nreturn [{ json: {\n  klanten: rows,\n  bericht: `Klant '${naam}' opgeslagen. ${rows.length} klant(en) in systeem.`\n}}];"
       }
     },
     {
@@ -78,12 +72,12 @@
       "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
     },
     "Function: Input valideren": {
-      "main": [[{ "node": "SQLite: Klant opslaan (upsert)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Execute: Klant opslaan (upsert)", "type": "main", "index": 0 }]]
     },
-    "SQLite: Klant opslaan (upsert)": {
-      "main": [[{ "node": "SQLite: Alle klanten ophalen", "type": "main", "index": 0 }]]
+    "Execute: Klant opslaan (upsert)": {
+      "main": [[{ "node": "Execute: Alle klanten ophalen", "type": "main", "index": 0 }]]
     },
-    "SQLite: Alle klanten ophalen": {
+    "Execute: Alle klanten ophalen": {
       "main": [[{ "node": "Function: Klantenlijst opbouwen", "type": "main", "index": 0 }]]
     },
     "Function: Klantenlijst opbouwen": {
