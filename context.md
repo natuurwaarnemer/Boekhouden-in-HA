@@ -1,6 +1,7 @@
 # Context — Natuurwaarnemer ERP
 
 > **Aangemaakt:** 2026-05-15  
+> **Laatst bijgewerkt:** 2026-05-16  
 > **Doel:** Overzicht van de huidige status van het project voor gebruik als context in Copilot Spaces en voor nieuwe bijdragers.
 
 ---
@@ -11,11 +12,13 @@
 
 - **Home Assistant** — invoerschermen, dashboards, automations
 - **n8n** — workflow-automatisering en API-koppelingen
-- **SQLite** — lokale database (geen cloud)
+- **MySQL** — database (draait lokaal, niet in de cloud)
 - **Gotenberg** — PDF-generatie via Docker
 - **SMTP** — e-mail versturen via n8n
 
 Geen abonnementen, geen cloud, alle data blijft op eigen hardware. Volledig BTW-conform met RGS grootboekschema.
+
+> **Let op:** De workflows zijn overgezet van SQLite naar **MySQL**. De `workflow_factuur.json` gebruikt nog SQLite via `executeCommand` — dit is een bekend openstaand punt.
 
 ---
 
@@ -33,16 +36,41 @@ Boekhouden-in-HA/
 │   └── packages/
 │       └── erp_input_helpers.yaml   ✅ Aanwezig — Input helpers, automations, rest_commands, template sensors
 ├── n8n/
-│   ├── workflow_factuur.json        ✅ Aanwezig — Factuurflow (PDF + e-mail + grootboek)
-│   ├── workflow_kosten.json         ✅ Aanwezig — Kostenregistratie
-│   ├── workflow_inkoop.json         ❌ Nog aanmaken (morgen)
-│   └── workflow_klanten.json        ❌ Nog aanmaken (morgen)
+│   ├── workflow_factuur.json        ✅ Aanwezig — Factuurflow (PDF + e-mail + grootboek, SQLite)
+│   ├── workflow_kosten.json         ✅ Aanwezig — Kostenregistratie (MySQL, HA terugkoppeling)
+│   ├── workflow_inkoop.json         ✅ Aanwezig — Inkoopfacturen (MySQL, HA terugkoppeling)
+│   └── workflow_klanten.json        ✅ Aanwezig — Klanten opslaan (MySQL, HA terugkoppeling)
 ├── templates/
 │   └── factuur_template.html        ⚠️ Aanwezig — nog aanpassen aan Natuurwaarnemer huisstijl
 └── docs/
     ├── installatie.md               ✅ Aanwezig — Installatie-instructies
     └── roadmap.md                   ✅ Aanwezig — Roadmap
 ```
+
+---
+
+## Sessieverslag 2026-05-16
+
+### Wat is gedaan in deze sessie
+
+1. **workflow_kosten.json gefixed**
+   - Omgezet van SQLite (`n8n-nodes-base.sqlite`) naar MySQL (`n8n-nodes-base.mySql`)
+   - `responseMode` van webhook gezet op `responseNode`
+   - HA terugkoppeling via HTTP Request toegevoegd naar `http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging`
+   - Respond to Webhook node toegevoegd als eindnode
+
+2. **workflow_inkoop.json gefixed**
+   - Zelfde aanpassingen als kosten: MySQL, `responseNode`, HA terugkoppeling
+   - Grootboek opzoeking via `ledger_accounts` tabel op code
+
+3. **Workflows geïmporteerd in n8n**
+   - `workflow_kosten.json` geïmporteerd via raw GitHub URL
+   - `workflow_inkoop.json` geïmporteerd via raw GitHub URL
+   - Import URLs:
+     - `https://raw.githubusercontent.com/natuurwaarnemer/Boekhouden-in-HA/main/n8n/workflow_kosten.json`
+     - `https://raw.githubusercontent.com/natuurwaarnemer/Boekhouden-in-HA/main/n8n/workflow_inkoop.json`
+
+4. **context.md bijgewerkt** (dit bestand)
 
 ---
 
@@ -59,20 +87,21 @@ Boekhouden-in-HA/
 | HA package — automations | ✅ Gereed | (onderdeel van package) |
 | HA package — template sensors | ✅ Gereed | (onderdeel van package) |
 | `initial: ""` op alle input_text | ✅ Gefixed 2026-05-15 | Voorkomt `unknown` na herstart |
-| n8n factuurflow | ✅ Aanwezig | `n8n/workflow_factuur.json` |
-| n8n kostenregistratie | ✅ Aanwezig | `n8n/workflow_kosten.json` |
-| n8n inkoop workflow | ❌ Nog aanmaken | `n8n/workflow_inkoop.json` |
-| n8n klanten workflow | ❌ Nog aanmaken | `n8n/workflow_klanten.json` |
+| n8n factuurflow | ✅ Aanwezig (SQLite) | `n8n/workflow_factuur.json` |
+| n8n kostenregistratie | ✅ Gereed (MySQL) | `n8n/workflow_kosten.json` |
+| n8n inkoop workflow | ✅ Gereed (MySQL) | `n8n/workflow_inkoop.json` |
+| n8n klanten workflow | ✅ Gereed (MySQL) | `n8n/workflow_klanten.json` |
+| Alle workflows in n8n geladen | ✅ Gereed 2026-05-16 | — |
 | HTML factuurtemplate (huisstijl) | ⚠️ Generiek aanwezig, nog aanpassen | `templates/factuur_template.html` |
-| Spookfactuur test (end-to-end) | ❌ Nog uitvoeren | Morgen |
-| PDF generatie via Gotenberg | ⚠️ Workflow aanwezig, nog niet getest |  |
-| Dashboard extra laag | ❌ Nog toevoegen | Morgen |
+| Spookfactuur test (end-to-end) | ❌ Nog uitvoeren | |
+| PDF generatie via Gotenberg | ⚠️ Workflow aanwezig, nog niet getest | |
+| Dashboard extra laag | ❌ Nog toevoegen | |
 | BTW-rapport | ❌ Nog niet geïmplementeerd | |
 
 ### ❌ Fase 2 — Webshop (nog niet gestart)
 
 - WooCommerce webhook → n8n
-- Orders opslaan in SQLite
+- Orders opslaan in MySQL
 - Automatisch facturen genereren
 - Voorraad bijwerken
 
@@ -85,11 +114,11 @@ Boekhouden-in-HA/
 
 ---
 
-## 📋 TODO — Morgen (2026-05-16)
+## 📋 TODO — Volgende sessie
 
-- [ ] **workflow_inkoop.json** aanmaken in n8n map
-- [ ] **workflow_klanten.json** aanmaken in n8n map
 - [ ] **Spookfactuur test** — end-to-end testen of de hele factuurflow werkt
+- [ ] **workflow_factuur.json migreren naar MySQL** (consistent met kosten/inkoop/klanten)
+- [ ] **HA terugkoppeling toevoegen aan workflow_factuur.json**
 - [ ] **Factuurontwerp** aanpassen aan Natuurwaarnemer huisstijl (`templates/factuur_template.html`)
 - [ ] **Dashboard extra laag** toevoegen aan het Lovelace dashboard
 - [ ] **Paperless-ngx integratie** onderzoeken (gratis, zelfgehost, Docker) — voor archiveren van factuur-PDF's
@@ -98,24 +127,36 @@ Boekhouden-in-HA/
 
 ## Technische details
 
+### Webhook URLs (n8n productie)
+
+| Workflow | Webhook URL |
+|---|---|
+| Factuur aanmaken | `http://192.168.2.35:5678/webhook/factuur-aanmaken` |
+| Kosten opslaan | `http://192.168.2.35:5678/webhook/kosten-opslaan` |
+| Inkoop opslaan | `http://192.168.2.35:5678/webhook/inkoop-opslaan` |
+| Klant opslaan | `http://192.168.2.35:5678/webhook/klant-opslaan` |
+
+### HA terugkoppeling webhook
+
+n8n stuurt bevestigingen terug naar:
+`http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging`
+
 ### Factuurnummering
 
-Formaat: `NW-YYYY-NNNN`  
-Voorbeelden: `NW-2026-0001`, `NW-2026-0042`
+Formaat: `F{YYYY}-{NNNN}`  
+Voorbeelden: `F2026-0001`, `F2026-0042`
 
-- Prefix `NW` (Natuurwaarnemer)
 - Jaar automatisch huidig jaar
-- 4-cijferige teller, reset elk jaar naar `0001`
-- Beheerd via `settings`-tabel in SQLite
+- 4-cijferige teller, beheerd via `settings`-tabel
+- Teller wordt atomisch opgehoogd in de workflow
 
 ### BTW-codes
 
 | Code | Betekenis |
 |---|---|
-| `H` | Hoog tarief (21%) |
-| `L` | Laag tarief (9%) |
-| `V` | Vrijgesteld |
-| `G` | Geen BTW |
+| `21` | Hoog tarief (21%) |
+| `9` | Laag tarief (9%) |
+| `0` | Geen / Vrijgesteld |
 
 ### Grootboekschema (RGS)
 
@@ -140,7 +181,7 @@ Voorbeelden: `NW-2026-0001`, `NW-2026-0042`
 |---|---|---|
 | Home Assistant | 2024.1+ | Invoerschermen, dashboards, automations |
 | n8n | 1.x | Workflow-automatisering |
-| SQLite | 3.x | Lokale database |
+| MySQL | 8.x | Lokale database |
 | Gotenberg | 8.x | PDF-generatie |
 | Docker | 20.x+ | Voor Gotenberg (en optioneel n8n) |
 | SMTP-server | — | E-mail versturen |
@@ -150,8 +191,9 @@ Voorbeelden: `NW-2026-0001`, `NW-2026-0042`
 
 ## Bekende openstaande punten
 
-- [ ] workflow_inkoop.json en workflow_klanten.json nog aanmaken
 - [ ] Spookfactuur end-to-end test nog uitvoeren
+- [ ] workflow_factuur.json nog migreren van SQLite naar MySQL
+- [ ] HA terugkoppeling ontbreekt nog in workflow_factuur.json
 - [ ] Factuurtemplate aanpassen aan Natuurwaarnemer huisstijl
 - [ ] Dashboard extra laag toevoegen
 - [ ] Paperless-ngx integratie (document archivering)
