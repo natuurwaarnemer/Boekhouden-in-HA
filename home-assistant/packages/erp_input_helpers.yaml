@@ -93,7 +93,7 @@ rest_command:
       }
 
 # ---------------------------------------------------------
-# AUTOMATIONS — Buttons naar n8n
+# AUTOMATIONS — Buttons naar n8n + bevestiging + reset
 # ---------------------------------------------------------
 automation:
 
@@ -114,7 +114,7 @@ automation:
 
   - id: automation_kosten_opslaan
     alias: "ERP: Kosten opslaan"
-    description: "Stuur kostendata naar n8n voor opslaan in SQLite en grootboek"
+    description: "Stuur kostendata naar n8n voor opslaan in database en grootboek"
     trigger:
       - platform: state
         entity_id: input_button.kosten_opslaan
@@ -129,7 +129,7 @@ automation:
 
   - id: automation_inkoop_opslaan
     alias: "ERP: Inkoop opslaan"
-    description: "Stuur inkoopdata naar n8n voor opslaan in SQLite en grootboek"
+    description: "Stuur inkoopdata naar n8n voor opslaan in database en grootboek"
     trigger:
       - platform: state
         entity_id: input_button.inkoop_opslaan
@@ -144,7 +144,7 @@ automation:
 
   - id: automation_klant_opslaan
     alias: "ERP: Klant opslaan"
-    description: "Stuur klantdata naar n8n voor opslaan in SQLite"
+    description: "Stuur klantdata naar n8n voor opslaan in database"
     trigger:
       - platform: state
         entity_id: input_button.klant_opslaan
@@ -159,7 +159,7 @@ automation:
 
   - id: automation_erp_bevestiging_ontvangen
     alias: "ERP: Bevestiging ontvangen van n8n"
-    description: "Verwerk bevestiging van n8n na factuur/kosten/inkoop/klant actie"
+    description: "Verwerk bevestiging van n8n — zet status, reset formulier na 5 sec"
     trigger:
       - platform: webhook
         webhook_id: natuurwaarnemer_erp_bevestiging
@@ -167,33 +167,8 @@ automation:
           - POST
     action:
       - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ trigger.json.type == 'factuur' }}"
-            sequence:
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.factuur_status
-                data:
-                  value: "✅ {{ trigger.json.bericht }}"
-          - conditions:
-              - condition: template
-                value_template: "{{ trigger.json.type == 'kosten' }}"
-            sequence:
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.kosten_status
-                data:
-                  value: "✅ {{ trigger.json.bericht }}"
-          - conditions:
-              - condition: template
-                value_template: "{{ trigger.json.type == 'inkoop' }}"
-            sequence:
-              - service: input_text.set_value
-                target:
-                  entity_id: input_text.inkoop_status
-                data:
-                  value: "✅ {{ trigger.json.bericht }}"
+
+          # ── KLANT ────────────────────────────────────────────
           - conditions:
               - condition: template
                 value_template: "{{ trigger.json.type == 'klant' }}"
@@ -203,12 +178,166 @@ automation:
                   entity_id: input_text.klant_status
                 data:
                   value: "✅ {{ trigger.json.bericht }}"
-      - service: persistent_notification.create
-        data:
-          title: "Natuurwaarnemer ERP"
-          message: "{{ trigger.json.bericht }}"
-          notification_id: erp_bevestiging
-    mode: single
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Klant opgeslagen"
+                  message: "{{ trigger.json.bericht }}"
+                  notification_id: erp_bevestiging_klant
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.klant_naam
+                    - input_text.klant_contactpersoon
+                    - input_text.klant_adres
+                    - input_text.klant_postcode
+                    - input_text.klant_stad
+                    - input_text.klant_email
+                    - input_text.klant_telefoon
+                    - input_text.klant_btwnummer
+                    - input_text.klant_kvknummer
+                    - input_text.klant_iban
+                    - input_text.klant_notities
+                    - input_text.klant_status
+                data:
+                  value: ""
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.klant_type
+                data:
+                  option: "Zakelijk (B2B)"
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.klant_land
+                data:
+                  option: "Nederland"
+
+          # ── FACTUUR ──────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.json.type == 'factuur' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.factuur_status
+                data:
+                  value: "✅ {{ trigger.json.bericht }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Factuur aangemaakt"
+                  message: "{{ trigger.json.bericht }}"
+                  notification_id: erp_bevestiging_factuur
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.factuur_project
+                    - input_text.factuur_regel1_omschrijving
+                    - input_text.factuur_regel2_omschrijving
+                    - input_text.factuur_regel3_omschrijving
+                    - input_text.factuur_notities
+                    - input_text.factuur_status
+                data:
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id:
+                    - input_number.factuur_regel1_aantal
+                    - input_number.factuur_regel2_aantal
+                    - input_number.factuur_regel3_aantal
+                data:
+                  value: 1
+              - service: input_number.set_value
+                target:
+                  entity_id:
+                    - input_number.factuur_regel1_prijs
+                    - input_number.factuur_regel2_prijs
+                    - input_number.factuur_regel3_prijs
+                data:
+                  value: 0
+              - service: input_select.select_option
+                target:
+                  entity_id:
+                    - input_select.factuur_regel1_btw
+                    - input_select.factuur_regel2_btw
+                    - input_select.factuur_regel3_btw
+                data:
+                  option: "21"
+
+          # ── INKOOP ───────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.json.type == 'inkoop' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.inkoop_status
+                data:
+                  value: "✅ {{ trigger.json.bericht }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Inkoop opgeslagen"
+                  message: "{{ trigger.json.bericht }}"
+                  notification_id: erp_bevestiging_inkoop
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.inkoop_leverancier
+                    - input_text.inkoop_factuurnummer
+                    - input_text.inkoop_datum
+                    - input_text.inkoop_omschrijving
+                    - input_text.inkoop_status
+                data:
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.inkoop_bedrag
+                data:
+                  value: 0
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.inkoop_btw
+                data:
+                  option: "21"
+
+          # ── KOSTEN ───────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.json.type == 'kosten' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.kosten_status
+                data:
+                  value: "✅ {{ trigger.json.bericht }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Kosten opgeslagen"
+                  message: "{{ trigger.json.bericht }}"
+                  notification_id: erp_bevestiging_kosten
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.kosten_leverancier
+                    - input_text.kosten_omschrijving
+                    - input_text.kosten_datum
+                    - input_text.kosten_status
+                data:
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.kosten_bedrag
+                data:
+                  value: 0
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.kosten_btw
+                data:
+                  option: "21"
+    mode: queued
+    max: 4
 
 # ---------------------------------------------------------
 # INPUT SELECT
@@ -325,8 +454,6 @@ input_select:
 
 # ---------------------------------------------------------
 # INPUT TEXT
-# Alle velden hebben initial: "" zodat ze nooit als
-# 'unknown' starten na een herstart van Home Assistant.
 # ---------------------------------------------------------
 input_text:
 
