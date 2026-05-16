@@ -31,7 +31,7 @@
       "typeVersion": 1,
       "position": [680, 300],
       "parameters": {
-        "command": "=sqlite3 /data/erp.db \"INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes) VALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.plaats }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btw_nummer }}', '{{ $json.kvk_nummer }}', '{{ $json.iban }}', '{{ $json.notities }}') ON CONFLICT(name) DO UPDATE SET type=excluded.type, contact_person=excluded.contact_person, address=excluded.address, postal_code=excluded.postal_code, city=excluded.city, country=excluded.country, email=excluded.email, phone=excluded.phone, vat_number=excluded.vat_number, kvk_number=excluded.kvk_number, iban=excluded.iban, notes=excluded.notes;\""
+        "command": "=sqlite3 /data/gippetto.db \"INSERT INTO customers (name, type, contact_person, address, postal_code, city, country, email, phone, vat_number, kvk_number, iban, notes) VALUES ('{{ $json.naam }}', '{{ $json.type }}', '{{ $json.contactpersoon }}', '{{ $json.adres }}', '{{ $json.postcode }}', '{{ $json.plaats }}', '{{ $json.land }}', '{{ $json.email }}', '{{ $json.telefoon }}', '{{ $json.btw_nummer }}', '{{ $json.kvk_nummer }}', '{{ $json.iban }}', '{{ $json.notities }}') ON CONFLICT(name) DO UPDATE SET type=excluded.type, contact_person=excluded.contact_person, address=excluded.address, postal_code=excluded.postal_code, city=excluded.city, country=excluded.country, email=excluded.email, phone=excluded.phone, vat_number=excluded.vat_number, kvk_number=excluded.kvk_number, iban=excluded.iban, notes=excluded.notes;\""
       }
     },
     {
@@ -41,7 +41,7 @@
       "typeVersion": 1,
       "position": [900, 300],
       "parameters": {
-        "command": "sqlite3 /data/erp.db \"SELECT name FROM customers ORDER BY name ASC;\""
+        "command": "sqlite3 /data/gippetto.db \"SELECT name FROM customers ORDER BY name ASC;\""
       }
     },
     {
