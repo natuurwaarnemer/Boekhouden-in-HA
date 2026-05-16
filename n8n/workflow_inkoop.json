@@ -1,5 +1,5 @@
 {
-  "name": "Natuurwaarnemer ERP \u2014 Inkoop opslaan",
+  "name": "Natuurwaarnemer ERP — Inkoop opslaan",
   "nodes": [
     {
       "id": "node_webhook",
@@ -10,7 +10,7 @@
       "parameters": {
         "path": "inkoop-opslaan",
         "httpMethod": "POST",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       }
     },
@@ -21,42 +21,64 @@
       "typeVersion": 1,
       "position": [460, 300],
       "parameters": {
-        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\n\nconst b = items[0].json.body || items[0].json;\nconst subtotaal = parseFloat(b.subtotaal) || 0;\nconst btw_tarief = parseFloat(b.btw_tarief) || 21;\nconst btw_bedrag = Math.round(subtotaal * btw_tarief) / 100;\nconst totaal = Math.round((subtotaal + btw_bedrag) * 100) / 100;\n\nreturn [{ json: {\n  leverancier:    sanitize(b.leverancier),\n  factuurnummer:  sanitize(b.factuurnummer),\n  datum:          sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  omschrijving:   sanitize(b.omschrijving),\n  subtotaal:      subtotaal,\n  btw_tarief:     btw_tarief,\n  btw_bedrag:     btw_bedrag,\n  totaal:         totaal,\n  grootboek_code: sanitize(b.grootboek_code || '7000')\n}}];"
+        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nconst bedrag = parseFloat(b.bedrag) || 0;\nconst btwPct = parseFloat(b.btw) || 0;\nconst btwBedrag = Math.round(bedrag * btwPct) / 100;\nconst totaal = Math.round((bedrag + btwBedrag) * 100) / 100;\nreturn [{ json: {\n  datum:         sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  leverancier:   sanitize(b.leverancier),\n  factuurnummer: sanitize(b.factuurnummer),\n  omschrijving:  sanitize(b.omschrijving),\n  bedrag:        bedrag,\n  btw_pct:       btwPct,\n  btw_bedrag:    btwBedrag,\n  totaal:        totaal,\n  grootboek:     sanitize(b.grootboek)\n}}];"
       }
     },
     {
       "id": "node_insert",
-      "name": "Execute: Inkoop invoegen",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
+      "name": "MySQL: Inkoop invoegen",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2,
       "position": [680, 300],
       "parameters": {
-        "command": "=sqlite3 /data/gippetto.db \"INSERT INTO expenses (date, supplier, description, amount, btw_percentage, btw_amount, total, ledger_account_id) SELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.omschrijving }}', {{ $json.subtotaal }}, {{ $json.btw_tarief }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id FROM ledger_accounts WHERE code = '{{ $json.grootboek_code }}' LIMIT 1;\""
+        "operation": "executeQuery",
+        "query": "INSERT INTO expenses (date, supplier, invoice_number, description, amount, btw_percentage, btw_amount, total, ledger_account_id)\nSELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.factuurnummer }}', '{{ $json.omschrijving }}', {{ $json.bedrag }}, {{ $json.btw_pct }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
+        "options": {}
+      },
+      "credentials": {
+        "mySql": {
+          "id": "mysql_cred",
+          "name": "MySQL — erp"
+        }
       }
     },
     {
       "id": "node_ledger",
-      "name": "Execute: Grootboekboeking inkoop",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [900, 200],
+      "name": "MySQL: Grootboekboeking inkoop",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2,
+      "position": [900, 300],
       "parameters": {
-        "command": "=sqlite3 /data/gippetto.db \"INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $node['Function: Input valideren'].json.datum }}', id, 'Inkoop {{ $node['Function: Input valideren'].json.leverancier }} - {{ $node['Function: Input valideren'].json.factuurnummer }}', {{ $node['Function: Input valideren'].json.totaal }}, 0, '{{ $node['Function: Input valideren'].json.factuurnummer }}', 'inkoop' FROM ledger_accounts WHERE code = '{{ $node['Function: Input valideren'].json.grootboek_code }}';\""
+        "operation": "executeQuery",
+        "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', {{ $json.bedrag }}, 0, '{{ $json.factuurnummer }}', 'inkoop'\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
+        "options": {}
+      },
+      "credentials": {
+        "mySql": {
+          "id": "mysql_cred",
+          "name": "MySQL — erp"
+        }
       }
     },
     {
-      "id": "node_ha_webhook",
-      "name": "HTTP Request: HA bevestiging",
+      "id": "node_notify_ha",
+      "name": "HTTP: HA terugkoppeling",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [1100, 300],
       "parameters": {
         "method": "POST",
-        "url": "http://homeassistant.local:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
         "sendBody": true,
-        "contentType": "json",
-        "body": "={\"type\": \"inkoop\", \"bericht\": \"Inkoop van {{ $node['Function: Input valideren'].json.leverancier }} opgeslagen (\u20ac {{ $node['Function: Input valideren'].json.totaal }})\"}" ,
-        "options": {}
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"inkoop\",\n  \"bericht\": \"Inkoop van {{ $('Function: Input valideren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: Input valideren').item.json.totaal }})\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     },
     {
@@ -67,7 +89,7 @@
       "position": [1300, 300],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"success\": true, \"bericht\": \"Inkoop van {{ $node['Function: Input valideren'].json.leverancier }} opgeslagen\" }",
+        "responseBody": "={{ JSON.stringify({ success: true, type: 'inkoop', bericht: 'Inkoop van ' + $('Function: Input valideren').item.json.leverancier + ' opgeslagen (\u20ac ' + $('Function: Input valideren').item.json.totaal + ')' }) }}",
         "options": {}
       }
     }
@@ -77,20 +99,15 @@
       "main": [[{ "node": "Function: Input valideren", "type": "main", "index": 0 }]]
     },
     "Function: Input valideren": {
-      "main": [[{ "node": "Execute: Inkoop invoegen", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "MySQL: Inkoop invoegen", "type": "main", "index": 0 }]]
     },
-    "Execute: Inkoop invoegen": {
-      "main": [
-        [
-          { "node": "Execute: Grootboekboeking inkoop", "type": "main", "index": 0 },
-          { "node": "HTTP Request: HA bevestiging", "type": "main", "index": 0 }
-        ]
-      ]
+    "MySQL: Inkoop invoegen": {
+      "main": [[{ "node": "MySQL: Grootboekboeking inkoop", "type": "main", "index": 0 }]]
     },
-    "Execute: Grootboekboeking inkoop": {
-      "main": [[{ "node": "HTTP Request: HA bevestiging", "type": "main", "index": 0 }]]
+    "MySQL: Grootboekboeking inkoop": {
+      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
     },
-    "HTTP Request: HA bevestiging": {
+    "HTTP: HA terugkoppeling": {
       "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },

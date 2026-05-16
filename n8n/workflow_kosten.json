@@ -10,53 +10,74 @@
       "parameters": {
         "path": "kosten-opslaan",
         "httpMethod": "POST",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       }
     },
     {
-      "id": "node_calc_btw",
+      "id": "node_calc",
       "name": "Function: BTW berekenen en saniteren",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [460, 300],
       "parameters": {
-        "functionCode": "// Saniteer tekstinvoer: verwijder single quotes voor SQLite-escaping\nfunction sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\n\n// Valideer getal\nfunction safeFloat(val, fallback) {\n  const n = parseFloat(val);\n  return isNaN(n) ? fallback : Math.abs(n);\n}\n\n// Valideer BTW percentage (mag alleen 0, 9 of 21 zijn)\nfunction safeBtw(val) {\n  const allowed = [0, 9, 21];\n  const n = parseInt(val);\n  return allowed.includes(n) ? n : 21;\n}\n\n// Valideer datum (JJJJ-MM-DD formaat)\nfunction safeDate(val) {\n  const d = String(val || '');\n  return /^\\d{4}-\\d{2}-\\d{2}$/.test(d) ? d : new Date().toISOString().split('T')[0];\n}\n\n// Valideer grootboekcode (mag alleen 4 cijfers zijn)\nfunction safeCode(val) {\n  const raw = String(val || '').split(' ')[0];\n  return /^\\d{4}$/.test(raw) ? raw : '4400';\n}\n\nconst body = $input.first().json.body || {};\n\nconst leverancier = sanitize(body.leverancier);\nconst omschrijving = sanitize(body.omschrijving);\nconst bedrag = safeFloat(body.bedrag, 0);\nconst btwPct = safeBtw(body.btw);\nconst datum = safeDate(body.datum);\nconst grootboekCode = safeCode(body.grootboek);\n\nconst btwBedrag = Math.round(bedrag * btwPct / 100 * 100) / 100;\nconst totaal = Math.round((bedrag + btwBedrag) * 100) / 100;\n\nreturn [{\n  json: {\n    leverancier,\n    omschrijving,\n    bedrag,\n    btw_percentage: btwPct,\n    btw_bedrag: btwBedrag,\n    totaal,\n    grootboek_code: grootboekCode,\n    datum\n  }\n}];"
+        "functionCode": "function sanitize(val) {\n  if (val === null || val === undefined) return '';\n  return String(val).replace(/'/g, \"''\").trim();\n}\nconst b = items[0].json.body || items[0].json;\nconst bedrag = parseFloat(b.bedrag) || 0;\nconst btwPct = parseFloat(b.btw) || 0;\nconst btwBedrag = Math.round(bedrag * btwPct) / 100;\nconst totaal = Math.round((bedrag + btwBedrag) * 100) / 100;\nreturn [{ json: {\n  datum:        sanitize(b.datum || new Date().toISOString().split('T')[0]),\n  leverancier:  sanitize(b.leverancier),\n  omschrijving: sanitize(b.omschrijving),\n  bedrag:       bedrag,\n  btw_pct:      btwPct,\n  btw_bedrag:   btwBedrag,\n  totaal:       totaal,\n  grootboek:    sanitize(b.grootboek)\n}}];"
       }
     },
     {
-      "id": "node_insert_expense",
-      "name": "SQLite: Kosten invoegen",
-      "type": "n8n-nodes-base.sqlite",
-      "typeVersion": 1,
+      "id": "node_insert",
+      "name": "MySQL: Kosten invoegen",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2,
       "position": [680, 300],
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO expenses (date, supplier, description, amount, btw_percentage, btw_amount, total, ledger_account_id) SELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.omschrijving }}', {{ $json.bedrag }}, {{ $json.btw_percentage }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id FROM ledger_accounts WHERE code = '{{ $json.grootboek_code }}'",
+        "query": "INSERT INTO expenses (date, supplier, description, amount, btw_percentage, btw_amount, total, ledger_account_id)\nSELECT '{{ $json.datum }}', '{{ $json.leverancier }}', '{{ $json.omschrijving }}', {{ $json.bedrag }}, {{ $json.btw_pct }}, {{ $json.btw_bedrag }}, {{ $json.totaal }}, id\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
         "options": {}
       },
       "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
+        "mySql": {
+          "id": "mysql_cred",
+          "name": "MySQL — erp"
         }
       }
     },
     {
       "id": "node_ledger",
-      "name": "SQLite: Grootboekboekingen kosten",
-      "type": "n8n-nodes-base.sqlite",
-      "typeVersion": 1,
+      "name": "MySQL: Grootboekboeking kosten",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2,
       "position": [900, 300],
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', {{ $json.bedrag }}, 0, '{{ $json.leverancier }}', 'INK' FROM ledger_accounts WHERE code = '{{ $json.grootboek_code }}';\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.datum }}', id, 'BTW {{ $json.omschrijving }}', {{ $json.btw_bedrag }}, 0, '{{ $json.leverancier }}', 'INK' FROM ledger_accounts WHERE code = '1600';\nINSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal) SELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', 0, {{ $json.totaal }}, '{{ $json.leverancier }}', 'INK' FROM ledger_accounts WHERE code = '4000';",
+        "query": "INSERT INTO ledger_entries (date, account_id, description, debit, credit, reference, journal)\nSELECT '{{ $json.datum }}', id, '{{ $json.omschrijving }}', {{ $json.bedrag }}, 0, '{{ $json.leverancier }}', 'inkoop'\nFROM ledger_accounts WHERE code = SUBSTRING_INDEX('{{ $json.grootboek }}', ' ', 1) LIMIT 1;",
         "options": {}
       },
       "credentials": {
-        "sqlite": {
-          "id": "sqlite_cred",
-          "name": "SQLite — gippetto.db"
+        "mySql": {
+          "id": "mysql_cred",
+          "name": "MySQL — erp"
+        }
+      }
+    },
+    {
+      "id": "node_notify_ha",
+      "name": "HTTP: HA terugkoppeling",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.17:8123/api/webhook/natuurwaarnemer_erp_bevestiging",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"kosten\",\n  \"bericht\": \"Kosten van {{ $('Function: BTW berekenen en saniteren').item.json.leverancier }} opgeslagen (\u20ac {{ $('Function: BTW berekenen en saniteren').item.json.totaal }})\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       }
     },
@@ -65,10 +86,10 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1120, 300],
+      "position": [1300, 300],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"success\": true,\n  \"bericht\": \"Kosten opgeslagen\"\n}",
+        "responseBody": "={{ JSON.stringify({ success: true, type: 'kosten', bericht: 'Kosten van ' + $('Function: BTW berekenen en saniteren').item.json.leverancier + ' opgeslagen (\u20ac ' + $('Function: BTW berekenen en saniteren').item.json.totaal + ')' }) }}",
         "options": {}
       }
     }
@@ -78,27 +99,24 @@
       "main": [[{ "node": "Function: BTW berekenen en saniteren", "type": "main", "index": 0 }]]
     },
     "Function: BTW berekenen en saniteren": {
-      "main": [[{ "node": "SQLite: Kosten invoegen", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "MySQL: Kosten invoegen", "type": "main", "index": 0 }]]
     },
-    "SQLite: Kosten invoegen": {
-      "main": [[{ "node": "SQLite: Grootboekboekingen kosten", "type": "main", "index": 0 }]]
+    "MySQL: Kosten invoegen": {
+      "main": [[{ "node": "MySQL: Grootboekboeking kosten", "type": "main", "index": 0 }]]
     },
-    "SQLite: Grootboekboekingen kosten": {
+    "MySQL: Grootboekboeking kosten": {
+      "main": [[{ "node": "HTTP: HA terugkoppeling", "type": "main", "index": 0 }]]
+    },
+    "HTTP: HA terugkoppeling": {
       "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
     "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": ""
+    "saveManualExecutions": true
   },
   "meta": {
-    "templateCredsSetupCompleted": false,
     "instanceId": "natuurwaarnemer-erp"
   },
-  "tags": [
-    { "name": "ERP" },
-    { "name": "Kosten" }
-  ]
+  "tags": [{ "name": "ERP" }, { "name": "Kosten" }]
 }
