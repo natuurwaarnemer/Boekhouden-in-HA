@@ -1,0 +1,12 @@
+secrets.yaml
+*.log
+home-assistant.log*
+home-assistant_v2.db*
+.storage/
+.cloud/
+.HA_VERSION
+custom_components/
+deps/
+tts/
+tmp/
+.claudecode/

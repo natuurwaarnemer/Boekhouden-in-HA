@@ -1,0 +1,2002 @@
+# =============================================================
+# Natuurwaarnemer ERP — Home Assistant Package
+# =============================================================
+# Kopieer dit bestand naar /config/packages/erp_input_helpers.yaml
+#
+# Zorg dat in configuration.yaml staat:
+#   homeassistant:
+#     packages: !include_dir_named packages/
+#
+# Zorg dat in secrets.yaml staat:
+#   n8n_webhook_factuur: "http://192.168.2.35:5678/webhook/factuur-aanmaken"
+#   n8n_webhook_kosten:  "http://192.168.2.35:5678/webhook/kosten-opslaan"
+#   n8n_webhook_inkoop:  "http://192.168.2.35:5678/webhook/inkoop-opslaan"
+#   n8n_webhook_klant:   "http://192.168.2.35:5678/webhook/klant-opslaan"
+
+# ---------------------------------------------------------
+# REST COMMANDS — HA naar n8n webhooks
+# ---------------------------------------------------------
+rest_command:
+
+  # ── FACTUREN CRUD ────────────────────────────────────────
+  n8n_facturen_per_klant_webhook:
+    url: !secret n8n_webhook_facturen_per_klant
+    method: POST
+    content_type: application/json
+    payload: '{"klant": "{{ states(''input_select.factuur_klant'') }}"}'
+
+  n8n_factuur_detail_webhook:
+    url: !secret n8n_webhook_factuur_detail
+    method: POST
+    content_type: application/json
+    payload: '{"factuurnummer": "{{ states(''input_select.factuur_selecteer'').split('' | '')[0] }}"}'
+
+  n8n_factuur_bijwerken_webhook:
+    url: !secret n8n_webhook_factuur_bijwerken
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "factuurnummer":  "{{ states('input_text.factuur_huidig_nummer') }}",
+        "notities":       "{{ states('input_text.factuur_notities') }}",
+        "omschrijving1":  "{{ states('input_text.factuur_regel1_omschrijving') }}",
+        "aantal1":        {{ states('input_number.factuur_regel1_aantal') }},
+        "prijs1":         {{ states('input_number.factuur_regel1_prijs') }},
+        "btw1":           "{{ states('input_select.factuur_regel1_btw') }}",
+        "omschrijving2":  "{{ states('input_text.factuur_regel2_omschrijving') }}",
+        "aantal2":        {{ states('input_number.factuur_regel2_aantal') }},
+        "prijs2":         {{ states('input_number.factuur_regel2_prijs') }},
+        "btw2":           "{{ states('input_select.factuur_regel2_btw') }}",
+        "omschrijving3":  "{{ states('input_text.factuur_regel3_omschrijving') }}",
+        "aantal3":        {{ states('input_number.factuur_regel3_aantal') }},
+        "prijs3":         {{ states('input_number.factuur_regel3_prijs') }},
+        "btw3":           "{{ states('input_select.factuur_regel3_btw') }}"
+      }
+
+  n8n_factuur_verwijderen_webhook:
+    url: !secret n8n_webhook_factuur_verwijderen
+    method: POST
+    content_type: application/json
+    payload: '{"factuurnummer": "{{ states(''input_text.factuur_huidig_nummer'') }}"}'
+
+  # ── INKOOP CRUD ───────────────────────────────────────────
+  n8n_inkopen_per_lev_webhook:
+    url: !secret n8n_webhook_inkopen_per_lev
+    method: POST
+    content_type: application/json
+    payload: '{"leverancier": "{{ states(''input_select.inkoop_leverancier'') }}"}'
+
+  n8n_inkoop_detail_webhook:
+    url: !secret n8n_webhook_inkoop_detail
+    method: POST
+    content_type: application/json
+    payload: '{"inkoop_id": "{{ states(''input_select.inkoop_selecteer'').split('' | '')[0] }}"}'
+
+  n8n_inkoop_bijwerken_webhook:
+    url: !secret n8n_webhook_inkoop_bijwerken
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "inkoop_id":      "{{ states('input_text.inkoop_huidig_id') }}",
+        "factuurnummer":  "{{ states('input_text.inkoop_factuurnummer') }}",
+        "datum":          "{{ states('input_text.inkoop_datum') }}",
+        "omschrijving":   "{{ states('input_text.inkoop_omschrijving') }}",
+        "bedrag":         {{ states('input_number.inkoop_bedrag') }},
+        "btw":            "{{ states('input_select.inkoop_btw') }}",
+        "grootboek":      "{{ states('input_select.inkoop_grootboek') }}"
+      }
+
+  n8n_inkoop_verwijderen_webhook:
+    url: !secret n8n_webhook_inkoop_verwijderen
+    method: POST
+    content_type: application/json
+    payload: '{"inkoop_id": "{{ states(''input_text.inkoop_huidig_id'') }}"}'
+
+  n8n_wachtrij_ophalen_webhook:
+    url: !secret n8n_webhook_wachtrij_ophalen
+    method: POST
+    content_type: application/json
+    payload: '{}'
+
+  n8n_wachtrij_versturen_webhook:
+    url: !secret n8n_webhook_wachtrij_versturen
+    method: POST
+    content_type: application/json
+    payload: "{% set ns = namespace(items=[]) %}{% for i in range(1, 11) %}{% set nr = states('input_text.wachtrij_slot_' ~ i).split('|')[0] %}{% if nr != '' %}{% set v = states('input_boolean.wachtrij_verstuur_' ~ i) == 'on' %}{% set ns.items = ns.items + [{'nr': nr, 'versturen': v}] %}{% endif %}{% endfor %}{{ {'facturen': ns.items} | to_json }}"
+
+  n8n_factuur_webhook:
+    url: !secret n8n_webhook_factuur
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "klant":          "{{ states('input_select.factuur_klant') }}",
+        "project":        "{{ states('input_text.factuur_project') }}",
+        "grootboek":      "{{ states('input_select.factuur_grootboek') }}",
+        "omschrijving1":  "{{ states('input_text.factuur_regel1_omschrijving') }}",
+        "aantal1":        {{ states('input_number.factuur_regel1_aantal') }},
+        "prijs1":         {{ states('input_number.factuur_regel1_prijs') }},
+        "btw1":           "{{ states('input_select.factuur_regel1_btw') }}",
+        "omschrijving2":  "{{ states('input_text.factuur_regel2_omschrijving') }}",
+        "aantal2":        {{ states('input_number.factuur_regel2_aantal') }},
+        "prijs2":         {{ states('input_number.factuur_regel2_prijs') }},
+        "btw2":           "{{ states('input_select.factuur_regel2_btw') }}",
+        "omschrijving3":  "{{ states('input_text.factuur_regel3_omschrijving') }}",
+        "aantal3":        {{ states('input_number.factuur_regel3_aantal') }},
+        "prijs3":         {{ states('input_number.factuur_regel3_prijs') }},
+        "btw3":           "{{ states('input_select.factuur_regel3_btw') }}",
+        "notities":       "{{ states('input_text.factuur_notities') }}"
+      }
+
+  n8n_inkoop_webhook:
+    url: !secret n8n_webhook_inkoop
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "leverancier":    "{{ states('input_select.inkoop_leverancier') }}",
+        "factuurnummer":  "{{ states('input_text.inkoop_factuurnummer') }}",
+        "datum":          "{{ states('input_text.inkoop_datum') }}",
+        "omschrijving":   "{{ states('input_text.inkoop_omschrijving') }}",
+        "bedrag":         {{ states('input_number.inkoop_bedrag') }},
+        "btw":            "{{ states('input_select.inkoop_btw') }}",
+        "grootboek":      "{{ states('input_select.inkoop_grootboek') }}"
+      }
+
+  n8n_ververs_klanten:
+    url: !secret n8n_webhook_ververs_klanten
+    method: POST
+    content_type: application/json
+    payload: '{}'
+
+  n8n_ververs_leveranciers:
+    url: !secret n8n_webhook_ververs_leveranciers
+    method: POST
+    content_type: application/json
+    payload: '{}'
+
+  n8n_leverancier_webhook:
+    url: !secret n8n_webhook_leverancier
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam":           "{{ states('input_text.leverancier_naam') }}",
+        "contactpersoon": "{{ states('input_text.leverancier_contactpersoon') }}",
+        "adres":          "{{ states('input_text.leverancier_adres') }}",
+        "postcode":       "{{ states('input_text.leverancier_postcode') }}",
+        "stad":           "{{ states('input_text.leverancier_stad') }}",
+        "land":           "{{ states('input_select.leverancier_land') }}",
+        "email":          "{{ states('input_text.leverancier_email') }}",
+        "telefoon":       "{{ states('input_text.leverancier_telefoon') }}",
+        "btwnummer":      "{{ states('input_text.leverancier_btwnummer') }}",
+        "kvknummer":      "{{ states('input_text.leverancier_kvknummer') }}",
+        "iban":           "{{ states('input_text.leverancier_iban') }}",
+        "notities":       "{{ states('input_text.leverancier_notities') }}"
+      }
+
+  n8n_leverancier_laden_webhook:
+    url: !secret n8n_webhook_leverancier_laden
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam": "{{ states('input_select.inkoop_leverancier') }}"
+      }
+
+  n8n_leverancier_bijwerken_webhook:
+    url: !secret n8n_webhook_leverancier_bijwerken
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam_huidig":    "{{ states('input_select.inkoop_leverancier') }}",
+        "naam":           "{{ states('input_text.leverancier_naam') }}",
+        "contactpersoon": "{{ states('input_text.leverancier_contactpersoon') }}",
+        "adres":          "{{ states('input_text.leverancier_adres') }}",
+        "postcode":       "{{ states('input_text.leverancier_postcode') }}",
+        "stad":           "{{ states('input_text.leverancier_stad') }}",
+        "land":           "{{ states('input_select.leverancier_land') }}",
+        "email":          "{{ states('input_text.leverancier_email') }}",
+        "telefoon":       "{{ states('input_text.leverancier_telefoon') }}",
+        "btwnummer":      "{{ states('input_text.leverancier_btwnummer') }}",
+        "kvknummer":      "{{ states('input_text.leverancier_kvknummer') }}",
+        "iban":           "{{ states('input_text.leverancier_iban') }}",
+        "notities":       "{{ states('input_text.leverancier_notities') }}"
+      }
+
+  n8n_leverancier_verwijderen_webhook:
+    url: !secret n8n_webhook_leverancier_verwijderen
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam": "{{ states('input_select.inkoop_leverancier') }}"
+      }
+
+  n8n_klant_webhook:
+    url: !secret n8n_webhook_klant
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam":           "{{ states('input_text.klant_naam') }}",
+        "type":           "{{ states('input_select.klant_type') }}",
+        "contactpersoon": "{{ states('input_text.klant_contactpersoon') }}",
+        "adres":          "{{ states('input_text.klant_adres') }}",
+        "postcode":       "{{ states('input_text.klant_postcode') }}",
+        "stad":           "{{ states('input_text.klant_stad') }}",
+        "land":           "{{ states('input_select.klant_land') }}",
+        "email":          "{{ states('input_text.klant_email') }}",
+        "telefoon":       "{{ states('input_text.klant_telefoon') }}",
+        "btwnummer":      "{{ states('input_text.klant_btwnummer') }}",
+        "kvknummer":      "{{ states('input_text.klant_kvknummer') }}",
+        "iban":           "{{ states('input_text.klant_iban') }}",
+        "notities":       "{{ states('input_text.klant_notities') }}"
+      }
+
+  n8n_klant_laden_webhook:
+    url: !secret n8n_webhook_klant_laden
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam": "{{ states('input_select.factuur_klant') }}"
+      }
+
+  n8n_klant_bijwerken_webhook:
+    url: !secret n8n_webhook_klant_bijwerken
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam_huidig":    "{{ states('input_select.factuur_klant') }}",
+        "naam":           "{{ states('input_text.klant_naam') }}",
+        "type":           "{{ states('input_select.klant_type') }}",
+        "contactpersoon": "{{ states('input_text.klant_contactpersoon') }}",
+        "adres":          "{{ states('input_text.klant_adres') }}",
+        "postcode":       "{{ states('input_text.klant_postcode') }}",
+        "stad":           "{{ states('input_text.klant_stad') }}",
+        "land":           "{{ states('input_select.klant_land') }}",
+        "email":          "{{ states('input_text.klant_email') }}",
+        "telefoon":       "{{ states('input_text.klant_telefoon') }}",
+        "btwnummer":      "{{ states('input_text.klant_btwnummer') }}",
+        "kvknummer":      "{{ states('input_text.klant_kvknummer') }}",
+        "iban":           "{{ states('input_text.klant_iban') }}",
+        "notities":       "{{ states('input_text.klant_notities') }}"
+      }
+
+  n8n_klant_verwijderen_webhook:
+    url: !secret n8n_webhook_klant_verwijderen
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "naam": "{{ states('input_select.factuur_klant') }}"
+      }
+
+# ---------------------------------------------------------
+# AUTOMATIONS — Buttons naar n8n + bevestiging + reset
+# ---------------------------------------------------------
+automation:
+
+  # ── FACTUREN CRUD ────────────────────────────────────────
+  - id: automation_factuur_selecteer_gewijzigd
+    alias: "ERP: Factuurnummer zetten bij selectie"
+    trigger:
+      - platform: state
+        entity_id: input_select.factuur_selecteer
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.factuur_selecteer') != '--- Selecteer factuur ---' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_huidig_nummer}
+        data:
+          value: "{{ states('input_select.factuur_selecteer').split(' | ')[0] }}"
+    mode: single
+
+  - id: automation_factuur_klant_gewijzigd
+    alias: "ERP: Facturen laden bij klant selectie"
+    trigger:
+      - platform: state
+        entity_id: input_select.factuur_klant
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.factuur_klant') != '--- Selecteer klant ---' }}"
+    action:
+      - service: input_select.select_option
+        target: {entity_id: input_select.factuur_selecteer}
+        data: {option: "--- Selecteer factuur ---"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Facturen ophalen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_facturen_per_klant_webhook
+    mode: single
+
+  - id: automation_factuur_lijst_ophalen
+    alias: "ERP: Facturen per klant ophalen"
+    trigger:
+      - platform: state
+        entity_id: input_button.factuur_lijst_ophalen
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Facturen ophalen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_facturen_per_klant_webhook
+    mode: single
+
+  - id: automation_factuur_detail_laden
+    alias: "ERP: Factuur detail laden"
+    trigger:
+      - platform: state
+        entity_id: input_button.factuur_detail_laden
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.factuur_selecteer') != '--- Selecteer factuur ---' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Factuur laden..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_factuur_detail_webhook
+    mode: single
+
+  - id: automation_factuur_bijwerken
+    alias: "ERP: Factuur bijwerken"
+    trigger:
+      - platform: state
+        entity_id: input_button.factuur_bijwerken_btn
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.factuur_huidig_nummer') != '' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Bijwerken..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_factuur_bijwerken_webhook
+    mode: single
+
+  - id: automation_factuur_verwijderen
+    alias: "ERP: Factuur verwijderen"
+    trigger:
+      - platform: state
+        entity_id: input_button.factuur_verwijderen_btn
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.factuur_huidig_nummer') != '' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Verwijderen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_factuur_verwijderen_webhook
+    mode: single
+
+  # ── INKOOP CRUD ───────────────────────────────────────────
+  - id: automation_inkoop_leverancier_gewijzigd
+    alias: "ERP: Inkopen laden bij leverancier selectie"
+    trigger:
+      - platform: state
+        entity_id: input_select.inkoop_leverancier
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.inkoop_leverancier') != '--- Selecteer leverancier ---' }}"
+    action:
+      - service: input_select.select_option
+        target: {entity_id: input_select.inkoop_selecteer}
+        data: {option: "--- Selecteer inkoop ---"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Inkopen ophalen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkopen_per_lev_webhook
+    mode: single
+
+  - id: automation_inkoop_selecteer_gewijzigd
+    alias: "ERP: Inkoop ID zetten bij selectie"
+    trigger:
+      - platform: state
+        entity_id: input_select.inkoop_selecteer
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.inkoop_selecteer') != '--- Selecteer inkoop ---' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_huidig_id}
+        data:
+          value: "{{ states('input_select.inkoop_selecteer').split(' | ')[0] }}"
+    mode: single
+
+  - id: automation_inkoop_lijst_ophalen
+    alias: "ERP: Inkopen per leverancier ophalen"
+    trigger:
+      - platform: state
+        entity_id: input_button.inkoop_lijst_ophalen
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Inkopen ophalen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkopen_per_lev_webhook
+    mode: single
+
+  - id: automation_inkoop_detail_laden
+    alias: "ERP: Inkoop detail laden"
+    trigger:
+      - platform: state
+        entity_id: input_button.inkoop_detail_laden
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.inkoop_selecteer') != '--- Selecteer inkoop ---' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Inkoop laden..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkoop_detail_webhook
+    mode: single
+
+  - id: automation_inkoop_bijwerken
+    alias: "ERP: Inkoop bijwerken"
+    trigger:
+      - platform: state
+        entity_id: input_button.inkoop_bijwerken_btn
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.inkoop_huidig_id') != '' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Bijwerken..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkoop_bijwerken_webhook
+    mode: single
+
+  - id: automation_inkoop_verwijderen
+    alias: "ERP: Inkoop verwijderen"
+    trigger:
+      - platform: state
+        entity_id: input_button.inkoop_verwijderen_btn
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.inkoop_huidig_id') != '' }}"
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Verwijderen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkoop_verwijderen_webhook
+    mode: single
+
+  - id: automation_wachtrij_ververs
+    alias: "ERP: Wachtrij vernieuwen"
+    trigger:
+      - platform: state
+        entity_id: input_button.wachtrij_ververs
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_status}
+        data: {value: "⏳ Wachtrij laden..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_wachtrij_ophalen_webhook
+    mode: single
+
+  - id: automation_wachtrij_versturen
+    alias: "ERP: Wachtrij geselecteerde versturen"
+    trigger:
+      - platform: state
+        entity_id: input_button.wachtrij_versturen
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_status}
+        data: {value: "⏳ Facturen versturen..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_wachtrij_versturen_webhook
+    mode: single
+
+  - id: automation_factuur_genereren
+    alias: "ERP: Factuur genereren"
+    description: "Stuur factuurdata naar n8n voor verwerking en PDF-generatie"
+    trigger:
+      - platform: state
+        entity_id: input_button.factuur_genereer
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.factuur_status
+        data:
+          value: "⏳ Bezig met aanmaken..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_factuur_webhook
+    mode: single
+
+
+  - id: automation_inkoop_opslaan
+    alias: "ERP: Inkoop opslaan"
+    description: "Stuur inkoopdata naar n8n voor opslaan in database en grootboek"
+    trigger:
+      - platform: state
+        entity_id: input_button.inkoop_opslaan
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.inkoop_status
+        data:
+          value: "⏳ Bezig met opslaan..."
+      - service: rest_command.n8n_inkoop_webhook
+    mode: single
+
+  - id: automation_klant_opslaan
+    alias: "ERP: Klant opslaan"
+    description: "Stuur klantdata naar n8n voor opslaan in database"
+    trigger:
+      - platform: state
+        entity_id: input_button.klant_opslaan
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.klant_status
+        data:
+          value: "⏳ Bezig met opslaan..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_klant_webhook
+    mode: single
+
+  - id: automation_erp_startup_ververs
+    alias: "ERP: Dropdowns verversen bij opstarten of reload"
+    description: "Controleert elke minuut of de dropdowns leeg zijn en vult ze opnieuw"
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: template
+        value_template: >
+          {{ state_attr('input_select.inkoop_leverancier', 'options') | length == 1 or
+             state_attr('input_select.factuur_klant', 'options') | length == 1 }}
+    action:
+      - service: rest_command.n8n_ververs_klanten
+      - delay: "00:00:02"
+      - service: rest_command.n8n_ververs_leveranciers
+    mode: single
+
+  - id: automation_leverancier_nieuw
+    alias: "ERP: Leverancier formulier leegmaken"
+    trigger:
+      - platform: state
+        entity_id: input_button.leverancier_nieuw
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id:
+            - input_text.leverancier_nummer
+            - input_text.leverancier_naam
+            - input_text.leverancier_contactpersoon
+            - input_text.leverancier_adres
+            - input_text.leverancier_postcode
+            - input_text.leverancier_stad
+            - input_text.leverancier_email
+            - input_text.leverancier_telefoon
+            - input_text.leverancier_btwnummer
+            - input_text.leverancier_kvknummer
+            - input_text.leverancier_iban
+            - input_text.leverancier_notities
+            - input_text.leverancier_status
+        data: {value: ""}
+      - service: input_select.select_option
+        target: {entity_id: input_select.leverancier_land}
+        data: {option: "Nederland"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.inkoop_leverancier}
+        data: {option: "--- Selecteer leverancier ---"}
+    mode: single
+
+  - id: automation_klant_nieuw
+    alias: "ERP: Klant formulier leegmaken"
+    trigger:
+      - platform: state
+        entity_id: input_button.klant_nieuw
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id:
+            - input_text.klant_nummer
+            - input_text.klant_naam
+            - input_text.klant_contactpersoon
+            - input_text.klant_adres
+            - input_text.klant_postcode
+            - input_text.klant_stad
+            - input_text.klant_email
+            - input_text.klant_telefoon
+            - input_text.klant_btwnummer
+            - input_text.klant_kvknummer
+            - input_text.klant_iban
+            - input_text.klant_notities
+            - input_text.klant_status
+        data: {value: ""}
+      - service: input_select.select_option
+        target: {entity_id: input_select.klant_type}
+        data: {option: "Zakelijk (B2B)"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.klant_land}
+        data: {option: "Nederland"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.factuur_klant}
+        data: {option: "--- Selecteer klant ---"}
+    mode: single
+
+  - id: automation_leverancier_opslaan
+    alias: "ERP: Leverancier opslaan"
+    description: "Stuur leverancierdata naar n8n voor opslaan in database"
+    trigger:
+      - platform: state
+        entity_id: input_button.leverancier_opslaan
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.leverancier_status
+        data:
+          value: "⏳ Bezig met opslaan..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_leverancier_webhook
+    mode: single
+
+  - id: automation_leverancier_laden
+    alias: "ERP: Leverancier laden"
+    description: "Haal leverancierdata op uit n8n en vul het formulier"
+    trigger:
+      - platform: state
+        entity_id: input_button.leverancier_laden
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.inkoop_leverancier') != '--- Selecteer leverancier ---' }}"
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.leverancier_status
+        data:
+          value: "⏳ Leverancier laden..."
+      - service: rest_command.n8n_leverancier_laden_webhook
+    mode: single
+
+  - id: automation_leverancier_bijwerken
+    alias: "ERP: Leverancier bijwerken"
+    description: "Stuur gewijzigde leverancierdata naar n8n voor opslaan in database"
+    trigger:
+      - platform: state
+        entity_id: input_button.leverancier_bijwerken
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.leverancier_status
+        data:
+          value: "⏳ Bezig met bijwerken..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_leverancier_bijwerken_webhook
+    mode: single
+
+  - id: automation_leverancier_verwijderen
+    alias: "ERP: Leverancier verwijderen"
+    description: "Verwijder leverancier via n8n uit de database"
+    trigger:
+      - platform: state
+        entity_id: input_button.leverancier_verwijderen
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.inkoop_leverancier') != '--- Selecteer leverancier ---' }}"
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.leverancier_status
+        data:
+          value: "⏳ Bezig met verwijderen..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_leverancier_verwijderen_webhook
+    mode: single
+
+  - id: automation_klant_laden
+    alias: "ERP: Klant laden"
+    description: "Haal klantdata op uit n8n en vul het formulier"
+    trigger:
+      - platform: state
+        entity_id: input_button.klant_laden
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.factuur_klant') != '--- Selecteer klant ---' }}"
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.klant_status
+        data:
+          value: "⏳ Klant laden..."
+      - service: rest_command.n8n_klant_laden_webhook
+    mode: single
+
+  - id: automation_klant_bijwerken
+    alias: "ERP: Klant bijwerken"
+    description: "Stuur gewijzigde klantdata naar n8n voor opslaan in database"
+    trigger:
+      - platform: state
+        entity_id: input_button.klant_bijwerken
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.klant_status
+        data:
+          value: "⏳ Bezig met bijwerken..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_klant_bijwerken_webhook
+    mode: single
+
+  - id: automation_klant_verwijderen
+    alias: "ERP: Klant verwijderen"
+    description: "Verwijder klant via n8n uit de database"
+    trigger:
+      - platform: state
+        entity_id: input_button.klant_verwijderen
+    condition:
+      - condition: template
+        value_template: "{{ states('input_select.factuur_klant') != '--- Selecteer klant ---' }}"
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.klant_status
+        data:
+          value: "⏳ Bezig met verwijderen..."
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.erp_status
+        data:
+          value: ""
+      - service: rest_command.n8n_klant_verwijderen_webhook
+    mode: single
+
+  - id: automation_erp_bevestiging_ontvangen
+    alias: "ERP: Bevestiging ontvangen van n8n"
+    description: "Verwerk bevestiging van n8n — zet status, reset formulier na 5 sec"
+    trigger:
+      - platform: state
+        entity_id: input_text.erp_status
+    action:
+      - choose:
+
+          # ── LEVERANCIER ──────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'leverancier' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.leverancier_status
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Leverancier"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_leverancier
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.leverancier_nummer
+                    - input_text.leverancier_naam
+                    - input_text.leverancier_contactpersoon
+                    - input_text.leverancier_adres
+                    - input_text.leverancier_postcode
+                    - input_text.leverancier_stad
+                    - input_text.leverancier_email
+                    - input_text.leverancier_telefoon
+                    - input_text.leverancier_btwnummer
+                    - input_text.leverancier_kvknummer
+                    - input_text.leverancier_iban
+                    - input_text.leverancier_notities
+                    - input_text.leverancier_status
+                data:
+                  value: ""
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.leverancier_land
+                data:
+                  option: "Nederland"
+
+          # ── KLANT ────────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'klant' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.klant_status
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Klant opgeslagen"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_klant
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.klant_nummer
+                    - input_text.klant_naam
+                    - input_text.klant_contactpersoon
+                    - input_text.klant_adres
+                    - input_text.klant_postcode
+                    - input_text.klant_stad
+                    - input_text.klant_email
+                    - input_text.klant_telefoon
+                    - input_text.klant_btwnummer
+                    - input_text.klant_kvknummer
+                    - input_text.klant_iban
+                    - input_text.klant_notities
+                    - input_text.klant_status
+                data:
+                  value: ""
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.klant_type
+                data:
+                  option: "Zakelijk (B2B)"
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.klant_land
+                data:
+                  option: "Nederland"
+
+          # ── FACTUUR BEHEER ───────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'factuur_beheer' }}"
+            sequence:
+              - service: input_text.set_value
+                target: {entity_id: input_text.factuur_beheer_status}
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Facturen"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_factuur_beheer
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[1] == 'verwijderd' }}"
+              - service: input_text.set_value
+                target: {entity_id: input_text.factuur_huidig_nummer}
+                data: {value: ""}
+              - service: input_text.set_value
+                target: {entity_id: input_text.erp_status}
+                data: {value: ""}
+              - service: rest_command.n8n_facturen_per_klant_webhook
+
+          # ── INKOOP BEHEER ─────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'inkoop_beheer' }}"
+            sequence:
+              - service: input_text.set_value
+                target: {entity_id: input_text.inkoop_beheer_status}
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Inkoop"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_inkoop_beheer
+
+          # ── WACHTRIJ ─────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'wachtrij' }}"
+            sequence:
+              - service: input_text.set_value
+                target: {entity_id: input_text.wachtrij_status}
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Wachtrij"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_wachtrij
+
+          # ── FACTUUR ──────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'factuur' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.factuur_status
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Factuur aangemaakt"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_factuur
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.factuur_project
+                    - input_text.factuur_regel1_omschrijving
+                    - input_text.factuur_regel2_omschrijving
+                    - input_text.factuur_regel3_omschrijving
+                    - input_text.factuur_notities
+                    - input_text.factuur_status
+                data:
+                  value: ""
+              - service: input_number.set_value
+                target:
+                  entity_id:
+                    - input_number.factuur_regel1_aantal
+                    - input_number.factuur_regel2_aantal
+                    - input_number.factuur_regel3_aantal
+                data:
+                  value: 1
+              - service: input_number.set_value
+                target:
+                  entity_id:
+                    - input_number.factuur_regel1_prijs
+                    - input_number.factuur_regel2_prijs
+                    - input_number.factuur_regel3_prijs
+                data:
+                  value: 0
+              - service: input_select.select_option
+                target:
+                  entity_id:
+                    - input_select.factuur_regel1_btw
+                    - input_select.factuur_regel2_btw
+                    - input_select.factuur_regel3_btw
+                data:
+                  option: "21"
+
+          # ── INKOOP ───────────────────────────────────────────
+          - conditions:
+              - condition: template
+                value_template: "{{ states('input_text.erp_status').split('|')[0] == 'inkoop' }}"
+            sequence:
+              - service: input_text.set_value
+                target:
+                  entity_id: input_text.inkoop_status
+                data:
+                  value: "✅ {{ states('input_text.erp_status').split('|')[2] }}"
+              - service: persistent_notification.create
+                data:
+                  title: "ERP — Inkoop opgeslagen"
+                  message: "{{ states('input_text.erp_status').split('|')[2] }}"
+                  notification_id: erp_bevestiging_inkoop
+              - delay: "00:00:05"
+              - service: input_text.set_value
+                target:
+                  entity_id:
+                    - input_text.inkoop_factuurnummer
+                    - input_text.inkoop_datum
+                    - input_text.inkoop_omschrijving
+                    - input_text.inkoop_status
+                data:
+                  value: ""
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.inkoop_leverancier
+                data:
+                  option: "--- Selecteer leverancier ---"
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.inkoop_bedrag
+                data:
+                  value: 0
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.inkoop_btw
+                data:
+                  option: "21"
+
+    mode: queued
+    max: 4
+
+# ---------------------------------------------------------
+# INPUT SELECT
+# ---------------------------------------------------------
+input_select:
+
+  factuur_selecteer:
+    name: Selecteer factuur
+    options:
+      - "--- Selecteer factuur ---"
+    icon: mdi:file-document-multiple
+
+  inkoop_selecteer:
+    name: Selecteer inkoop
+    options:
+      - "--- Selecteer inkoop ---"
+    icon: mdi:cart-search
+
+  factuur_klant:
+    name: Klant
+    options:
+      - "--- Selecteer klant ---"
+    icon: mdi:account
+
+  factuur_grootboek:
+    name: "Grootboekrekening Omzet"
+    options:
+      - "8000 Omzet diensten (21%)"
+      - "8010 Omzet diensten (9%)"
+      - "8020 Omzet diensten vrijgesteld (0%)"
+      - "8100 Omzet producten (21%)"
+      - "8110 Omzet producten (9%)"
+      - "8200 Omzet doorbelaste kosten (21%)"
+      - "8900 Omzet vrijgesteld van BTW (0%)"
+    initial: "8000 Omzet diensten (21%)"
+    icon: mdi:book-open-variant
+
+  factuur_regel1_btw:
+    name: "Regel 1 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel2_btw:
+    name: "Regel 2 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  factuur_regel3_btw:
+    name: "Regel 3 — BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  inkoop_btw:
+    name: "Inkoop BTW %"
+    options: ["21", "9", "0"]
+    initial: "21"
+    icon: mdi:percent
+
+  inkoop_grootboek:
+    name: "Grootboekrekening Inkoop"
+    options:
+      - "4000 Inkoopwaarde handelsgoederen (21%)"
+      - "4200 Inkoop diensten / uitbesteding (21%)"
+      - "4300 Inhuur freelancers / ZZP (21%)"
+      - "4410 Kantoorkosten (21%)"
+      - "4420 Reiskosten (0%/21%)"
+      - "4430 Marketing en reclame (21%)"
+      - "4440 Automatisering en software (21%)"
+      - "4450 Verzekeringen (0%)"
+      - "4460 Telefoon en internet (21%)"
+      - "6100 Bankkosten (0%)"
+      - "7000 Representatiekosten (21%)"
+      - "7100 Abonnementen (21%)"
+      - "7200 Advieskosten (21%)"
+      - "7300 Onderhoudskosten (21%)"
+      - "7400 Overige bedrijfskosten (21%)"
+    initial: "4410 Kantoorkosten (21%)"
+    icon: mdi:book-open-variant
+
+  inkoop_leverancier:
+    name: Leverancier
+    options:
+      - "--- Selecteer leverancier ---"
+    icon: mdi:truck
+
+  leverancier_land:
+    name: Land (leverancier)
+    options:
+      - "Nederland"
+      - "België"
+      - "Duitsland"
+      - "Frankrijk"
+      - "Verenigd Koninkrijk"
+      - "Overig EU"
+      - "Buiten EU"
+    initial: "Nederland"
+    icon: mdi:earth
+
+  klant_type:
+    name: Klanttype
+    options:
+      - "Zakelijk (B2B)"
+      - "Particulier (B2C)"
+      - "Overheid"
+      - "Non-profit"
+    initial: "Zakelijk (B2B)"
+    icon: mdi:domain
+
+  klant_land:
+    name: Land
+    options:
+      - "Nederland"
+      - "België"
+      - "Duitsland"
+      - "Frankrijk"
+      - "Verenigd Koninkrijk"
+      - "Overig EU"
+      - "Buiten EU"
+    initial: "Nederland"
+    icon: mdi:earth
+
+
+# ---------------------------------------------------------
+# INPUT BOOLEAN — Wachtrij verstuur-toggles
+# ---------------------------------------------------------
+input_boolean:
+  wachtrij_verstuur_1:  {name: "Versturen 1",  icon: mdi:email-send}
+  wachtrij_verstuur_2:  {name: "Versturen 2",  icon: mdi:email-send}
+  wachtrij_verstuur_3:  {name: "Versturen 3",  icon: mdi:email-send}
+  wachtrij_verstuur_4:  {name: "Versturen 4",  icon: mdi:email-send}
+  wachtrij_verstuur_5:  {name: "Versturen 5",  icon: mdi:email-send}
+  wachtrij_verstuur_6:  {name: "Versturen 6",  icon: mdi:email-send}
+  wachtrij_verstuur_7:  {name: "Versturen 7",  icon: mdi:email-send}
+  wachtrij_verstuur_8:  {name: "Versturen 8",  icon: mdi:email-send}
+  wachtrij_verstuur_9:  {name: "Versturen 9",  icon: mdi:email-send}
+  wachtrij_verstuur_10: {name: "Versturen 10", icon: mdi:email-send}
+
+# ---------------------------------------------------------
+# INPUT TEXT
+# ---------------------------------------------------------
+input_text:
+  # Wachtrij slots (10 stuks) — gevuld door n8n: "FNUMMER|KLANT|PROJECT|EXCL|BTW|TOTAAL"
+  wachtrij_slot_1:  {name: "Wachtrij slot 1",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_2:  {name: "Wachtrij slot 2",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_3:  {name: "Wachtrij slot 3",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_4:  {name: "Wachtrij slot 4",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_5:  {name: "Wachtrij slot 5",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_6:  {name: "Wachtrij slot 6",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_7:  {name: "Wachtrij slot 7",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_8:  {name: "Wachtrij slot 8",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_9:  {name: "Wachtrij slot 9",  max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_slot_10: {name: "Wachtrij slot 10", max: 255, initial: "", icon: mdi:file-document}
+  wachtrij_status:  {name: "Wachtrij status",  max: 255, initial: "", icon: mdi:information}
+
+  # ERP Status — terugkoppeling van n8n
+  erp_status:
+    name: ERP Status
+    initial: ""
+    max: 255
+    icon: mdi:information-outline
+
+  # Verkopen
+  factuur_huidig_nummer:
+    name: Huidig factuurnummer
+    max: 20
+    initial: ""
+    icon: mdi:pound
+  inkoop_huidig_id:
+    name: Huidig inkoop ID
+    max: 20
+    initial: ""
+    icon: mdi:pound
+  factuur_beheer_status:
+    name: Factuur beheer status
+    max: 255
+    initial: ""
+    icon: mdi:information
+  inkoop_beheer_status:
+    name: Inkoop beheer status
+    max: 255
+    initial: ""
+    icon: mdi:information
+
+  factuur_project:
+    name: Project / Referentie
+    max: 100
+    initial: ""
+    icon: mdi:briefcase
+  factuur_regel1_omschrijving:
+    name: "Regel 1 — Omschrijving"
+    max: 200
+    initial: ""
+    icon: mdi:text
+  factuur_regel2_omschrijving:
+    name: "Regel 2 — Omschrijving"
+    max: 200
+    initial: ""
+    icon: mdi:text
+  factuur_regel3_omschrijving:
+    name: "Regel 3 — Omschrijving"
+    max: 200
+    initial: ""
+    icon: mdi:text
+  factuur_notities:
+    name: Notities
+    max: 255
+    initial: ""
+    icon: mdi:note-text
+  factuur_status:
+    name: Factuur Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Inkopen
+  inkoop_leverancier:
+    name: Leverancier
+    max: 100
+    initial: ""
+    icon: mdi:store
+  inkoop_factuurnummer:
+    name: Factuurnummer leverancier
+    max: 50
+    initial: ""
+    icon: mdi:pound
+  inkoop_datum:
+    name: "Datum (DD-MM-JJJJ)"
+    max: 10
+    initial: ""
+    icon: mdi:calendar
+  inkoop_omschrijving:
+    name: Omschrijving
+    max: 200
+    initial: ""
+    icon: mdi:text
+  inkoop_status:
+    name: Inkoop Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Nummers (geladen vanuit DB, read-only)
+  klant_nummer:
+    name: Klantnummer
+    max: 20
+    initial: ""
+    icon: mdi:pound
+  leverancier_nummer:
+    name: Leveranciersnummer
+    max: 20
+    initial: ""
+    icon: mdi:pound
+
+  # Leveranciers
+  leverancier_naam:
+    name: Bedrijfsnaam / Naam
+    max: 100
+    initial: ""
+    icon: mdi:domain
+  leverancier_contactpersoon:
+    name: Contactpersoon
+    max: 100
+    initial: ""
+    icon: mdi:account
+  leverancier_adres:
+    name: Adres
+    max: 150
+    initial: ""
+    icon: mdi:map-marker
+  leverancier_postcode:
+    name: Postcode
+    max: 10
+    initial: ""
+    icon: mdi:mailbox
+  leverancier_stad:
+    name: Stad
+    max: 100
+    initial: ""
+    icon: mdi:city
+  leverancier_email:
+    name: E-mailadres
+    max: 100
+    initial: ""
+    icon: mdi:email
+  leverancier_telefoon:
+    name: Telefoonnummer
+    max: 30
+    initial: ""
+    icon: mdi:phone
+  leverancier_btwnummer:
+    name: BTW-nummer
+    max: 20
+    initial: ""
+    icon: mdi:office-building
+  leverancier_kvknummer:
+    name: KVK-nummer
+    max: 20
+    initial: ""
+    icon: mdi:card-account-details
+  leverancier_iban:
+    name: IBAN
+    max: 34
+    initial: ""
+    icon: mdi:bank
+  leverancier_notities:
+    name: Notities
+    max: 255
+    initial: ""
+    icon: mdi:note-text
+  leverancier_status:
+    name: Leverancier Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+  # Klanten
+  klant_naam:
+    name: Bedrijfsnaam / Naam
+    max: 100
+    initial: ""
+    icon: mdi:domain
+  klant_contactpersoon:
+    name: Contactpersoon
+    max: 100
+    initial: ""
+    icon: mdi:account
+  klant_adres:
+    name: Adres
+    max: 150
+    initial: ""
+    icon: mdi:map-marker
+  klant_postcode:
+    name: Postcode
+    max: 10
+    initial: ""
+    icon: mdi:mailbox
+  klant_stad:
+    name: Stad
+    max: 100
+    initial: ""
+    icon: mdi:city
+  klant_email:
+    name: E-mailadres
+    max: 100
+    initial: ""
+    icon: mdi:email
+  klant_telefoon:
+    name: Telefoonnummer
+    max: 30
+    initial: ""
+    icon: mdi:phone
+  klant_btwnummer:
+    name: BTW-nummer
+    max: 20
+    initial: ""
+    icon: mdi:office-building
+  klant_kvknummer:
+    name: KVK-nummer
+    max: 20
+    initial: ""
+    icon: mdi:card-account-details
+  klant_iban:
+    name: IBAN
+    max: 34
+    initial: ""
+    icon: mdi:bank
+  klant_notities:
+    name: Notities
+    max: 255
+    initial: ""
+    icon: mdi:note-text
+  klant_status:
+    name: Klant Status
+    initial: ""
+    max: 200
+    icon: mdi:information
+
+
+# ---------------------------------------------------------
+# INPUT NUMBER
+# ---------------------------------------------------------
+input_number:
+
+  # Verkopen — regels
+  factuur_regel1_aantal:
+    name: "Regel 1 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    mode: box
+    icon: mdi:counter
+  factuur_regel1_prijs:
+    name: "Regel 1 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    mode: box
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  factuur_regel2_aantal:
+    name: "Regel 2 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    mode: box
+    icon: mdi:counter
+  factuur_regel2_prijs:
+    name: "Regel 2 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    mode: box
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  factuur_regel3_aantal:
+    name: "Regel 3 — Aantal"
+    min: 0
+    max: 9999
+    step: 0.5
+    initial: 1
+    mode: box
+    icon: mdi:counter
+  factuur_regel3_prijs:
+    name: "Regel 3 — Stukprijs"
+    min: 0
+    max: 99999
+    step: 0.01
+    initial: 0
+    mode: box
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+  # Inkopen
+  inkoop_bedrag:
+    name: "Bedrag (excl. BTW)"
+    min: 0
+    max: 999999
+    step: 0.01
+    initial: 0
+    mode: box
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
+
+# ---------------------------------------------------------
+# INPUT BUTTON
+# ---------------------------------------------------------
+input_button:
+  wachtrij_ververs:
+    name: Wachtrij vernieuwen
+    icon: mdi:refresh
+  wachtrij_versturen:
+    name: Verstuur geselecteerde
+    icon: mdi:send
+  factuur_lijst_ophalen:
+    name: Facturen ophalen
+    icon: mdi:magnify
+  factuur_detail_laden:
+    name: Factuur laden
+    icon: mdi:file-document-arrow-right
+  factuur_bijwerken_btn:
+    name: Factuur bijwerken
+    icon: mdi:file-document-edit
+  factuur_verwijderen_btn:
+    name: Factuur verwijderen
+    icon: mdi:file-document-remove
+  inkoop_lijst_ophalen:
+    name: Inkopen ophalen
+    icon: mdi:magnify
+  inkoop_detail_laden:
+    name: Inkoop laden
+    icon: mdi:cart-arrow-right
+  inkoop_bijwerken_btn:
+    name: Inkoop bijwerken
+    icon: mdi:cart-check
+  inkoop_verwijderen_btn:
+    name: Inkoop verwijderen
+    icon: mdi:cart-remove
+  factuur_genereer:
+    name: Factuur Genereren
+    icon: mdi:file-document-plus
+  inkoop_opslaan:
+    name: Inkoop Opslaan
+    icon: mdi:cart-arrow-down
+  leverancier_nieuw:
+    name: Nieuw leverancier
+    icon: mdi:truck-plus-outline
+  leverancier_opslaan:
+    name: Leverancier Opslaan
+    icon: mdi:truck-plus
+  leverancier_laden:
+    name: Leverancier Laden
+    icon: mdi:truck-arrow-right
+  leverancier_bijwerken:
+    name: Leverancier Bijwerken
+    icon: mdi:truck-edit
+  leverancier_verwijderen:
+    name: Leverancier Verwijderen
+    icon: mdi:truck-remove
+  klant_nieuw:
+    name: Nieuwe klant
+    icon: mdi:account-plus-outline
+  klant_opslaan:
+    name: Klant Opslaan
+    icon: mdi:account-plus
+  klant_laden:
+    name: Klant Laden
+    icon: mdi:account-arrow-down
+  klant_bijwerken:
+    name: Klant Bijwerken
+    icon: mdi:account-edit
+  klant_verwijderen:
+    name: Klant Verwijderen
+    icon: mdi:account-remove
+
+# ---------------------------------------------------------
+# TEMPLATE SENSORS — Berekeningen
+# ---------------------------------------------------------
+template:
+  - sensor:
+
+      # ── Regel 1 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel1 Subtotaal"
+        unique_id: erp_factuur_regel1_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel1_aantal') | float(0))
+           * (states('input_number.factuur_regel1_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel1 BTW"
+        unique_id: erp_factuur_regel1_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel1_aantal') | float(0))
+                     * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel1_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Regel 2 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel2 Subtotaal"
+        unique_id: erp_factuur_regel2_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel2_aantal') | float(0))
+           * (states('input_number.factuur_regel2_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel2 BTW"
+        unique_id: erp_factuur_regel2_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel2_aantal') | float(0))
+                     * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel2_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Interne nummers (read-only weergave) ─────────────
+      - name: "Leveranciersnummer"
+        unique_id: erp_leveranciersnummer
+        icon: mdi:identifier
+        state: "{{ states('input_text.leverancier_nummer') or '—' }}"
+
+      - name: "Klantnummer"
+        unique_id: erp_klantnummer
+        icon: mdi:identifier
+        state: "{{ states('input_text.klant_nummer') or '—' }}"
+
+      # ── Regel 3 ──────────────────────────────────────────
+      - name: "ERP Factuur Regel3 Subtotaal"
+        unique_id: erp_factuur_regel3_subtotaal
+        unit_of_measurement: "€"
+        icon: mdi:calculator
+        state: >
+          {{ (states('input_number.factuur_regel3_aantal') | float(0))
+           * (states('input_number.factuur_regel3_prijs') | float(0)) | round(2) }}
+
+      - name: "ERP Factuur Regel3 BTW"
+        unique_id: erp_factuur_regel3_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set sub = (states('input_number.factuur_regel3_aantal') | float(0))
+                     * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set pct = states('input_select.factuur_regel3_btw') | float(0) %}
+          {{ (sub * pct / 100) | round(2) }}
+
+      # ── Factuur Totalen ───────────────────────────────────
+      - name: "ERP Factuur Totaal Excl BTW"
+        unique_id: erp_factuur_totaal_excl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {{ (r1 + r2 + r3) | round(2) }}
+
+      - name: "ERP Factuur Totaal BTW"
+        unique_id: erp_factuur_totaal_btw
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set b1 = r1 * (states('input_select.factuur_regel1_btw') | float(0)) / 100 %}
+          {% set b2 = r2 * (states('input_select.factuur_regel2_btw') | float(0)) / 100 %}
+          {% set b3 = r3 * (states('input_select.factuur_regel3_btw') | float(0)) / 100 %}
+          {{ (b1 + b2 + b3) | round(2) }}
+
+      - name: "ERP Factuur Totaal Incl BTW"
+        unique_id: erp_factuur_totaal_incl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set r1 = (states('input_number.factuur_regel1_aantal') | float(0))
+                    * (states('input_number.factuur_regel1_prijs') | float(0)) %}
+          {% set r2 = (states('input_number.factuur_regel2_aantal') | float(0))
+                    * (states('input_number.factuur_regel2_prijs') | float(0)) %}
+          {% set r3 = (states('input_number.factuur_regel3_aantal') | float(0))
+                    * (states('input_number.factuur_regel3_prijs') | float(0)) %}
+          {% set b1 = r1 * (states('input_select.factuur_regel1_btw') | float(0)) / 100 %}
+          {% set b2 = r2 * (states('input_select.factuur_regel2_btw') | float(0)) / 100 %}
+          {% set b3 = r3 * (states('input_select.factuur_regel3_btw') | float(0)) / 100 %}
+          {{ (r1 + r2 + r3 + b1 + b2 + b3) | round(2) }}
+
+      # ── Inkoop Berekeningen ───────────────────────────────
+      - name: "ERP Inkoop BTW Bedrag"
+        unique_id: erp_inkoop_btw_bedrag
+        unit_of_measurement: "€"
+        icon: mdi:percent
+        state: >
+          {% set bedrag = states('input_number.inkoop_bedrag') | float(0) %}
+          {% set pct = states('input_select.inkoop_btw') | float(0) %}
+          {{ (bedrag * pct / 100) | round(2) }}
+
+      - name: "ERP Inkoop Totaal Incl BTW"
+        unique_id: erp_inkoop_totaal_incl_btw
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set bedrag = states('input_number.inkoop_bedrag') | float(0) %}
+          {% set pct = states('input_select.inkoop_btw') | float(0) %}
+          {{ (bedrag * (1 + pct / 100)) | round(2) }}
+
+
+# ---------------------------------------------------------
+# SCRIPT — Klant laden in formulier (aangeroepen door n8n)
+# ---------------------------------------------------------
+script:
+  erp_leverancier_laden:
+    alias: ERP Leverancier laden in formulier
+    mode: single
+    fields:
+      nummer:       {description: Leveranciersnummer}
+      naam:         {description: Bedrijfsnaam}
+      contactpersoon: {description: Contactpersoon}
+      adres:        {description: Adres}
+      postcode:     {description: Postcode}
+      stad:         {description: Stad}
+      land:         {description: Land}
+      email:        {description: E-mailadres}
+      telefoon:     {description: Telefoonnummer}
+      btwnummer:    {description: BTW-nummer}
+      kvknummer:    {description: KVK-nummer}
+      iban:         {description: IBAN}
+      notities:     {description: Notities}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_nummer}
+        data: {value: "LV-{{ nummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_naam}
+        data: {value: "{{ naam }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_contactpersoon}
+        data: {value: "{{ contactpersoon }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_adres}
+        data: {value: "{{ adres }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_postcode}
+        data: {value: "{{ postcode }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_stad}
+        data: {value: "{{ stad }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.leverancier_land}
+        data: {option: "{{ land }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_email}
+        data: {value: "{{ email }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_telefoon}
+        data: {value: "{{ telefoon }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_btwnummer}
+        data: {value: "{{ btwnummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_kvknummer}
+        data: {value: "{{ kvknummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_iban}
+        data: {value: "{{ iban }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_notities}
+        data: {value: "{{ notities }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.leverancier_status}
+        data: {value: "✅ Leverancier '{{ naam }}' geladen — pas aan en klik Bijwerken"}
+
+  erp_klant_laden:
+    alias: ERP Klant laden in formulier
+    mode: single
+    fields:
+      nummer:       {description: Klantnummer}
+      naam:         {description: Bedrijfsnaam}
+      type:         {description: Klanttype}
+      contactpersoon: {description: Contactpersoon}
+      adres:        {description: Adres}
+      postcode:     {description: Postcode}
+      stad:         {description: Stad}
+      land:         {description: Land}
+      email:        {description: E-mailadres}
+      telefoon:     {description: Telefoonnummer}
+      btwnummer:    {description: BTW-nummer}
+      kvknummer:    {description: KVK-nummer}
+      iban:         {description: IBAN}
+      notities:     {description: Notities}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_nummer}
+        data: {value: "KL-{{ nummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_naam}
+        data: {value: "{{ naam }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.klant_type}
+        data: {option: "{{ type }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_contactpersoon}
+        data: {value: "{{ contactpersoon }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_adres}
+        data: {value: "{{ adres }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_postcode}
+        data: {value: "{{ postcode }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_stad}
+        data: {value: "{{ stad }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.klant_land}
+        data: {option: "{{ land }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_email}
+        data: {value: "{{ email }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_telefoon}
+        data: {value: "{{ telefoon }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_btwnummer}
+        data: {value: "{{ btwnummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_kvknummer}
+        data: {value: "{{ kvknummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_iban}
+        data: {value: "{{ iban }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_notities}
+        data: {value: "{{ notities }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.klant_status}
+        data: {value: "✅ Klant '{{ naam }}' geladen — pas aan en klik Bijwerken"}
+
+  erp_factuur_laden_formulier:
+    alias: "ERP: Factuur laden in formulier"
+    mode: single
+    fields:
+      factuurnummer: {description: Factuurnummer}
+      notities:      {description: Notities}
+      omschrijving1: {description: Omschrijving regel 1}
+      aantal1:       {description: Aantal regel 1}
+      prijs1:        {description: Prijs regel 1}
+      btw1:          {description: BTW regel 1}
+      omschrijving2: {description: Omschrijving regel 2}
+      aantal2:       {description: Aantal regel 2}
+      prijs2:        {description: Prijs regel 2}
+      btw2:          {description: BTW regel 2}
+      omschrijving3: {description: Omschrijving regel 3}
+      aantal3:       {description: Aantal regel 3}
+      prijs3:        {description: Prijs regel 3}
+      btw3:          {description: BTW regel 3}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_huidig_nummer}
+        data: {value: "{{ factuurnummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_notities}
+        data: {value: "{{ notities | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_regel1_omschrijving}
+        data: {value: "{{ omschrijving1 | default('') }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel1_aantal}
+        data: {value: "{{ aantal1 | default(1) }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel1_prijs}
+        data: {value: "{{ prijs1 | default(0) }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.factuur_regel1_btw}
+        data: {option: "{{ btw1 | default('21') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_regel2_omschrijving}
+        data: {value: "{{ omschrijving2 | default('') }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel2_aantal}
+        data: {value: "{{ aantal2 | default(1) }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel2_prijs}
+        data: {value: "{{ prijs2 | default(0) }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.factuur_regel2_btw}
+        data: {option: "{{ btw2 | default('21') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_regel3_omschrijving}
+        data: {value: "{{ omschrijving3 | default('') }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel3_aantal}
+        data: {value: "{{ aantal3 | default(1) }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.factuur_regel3_prijs}
+        data: {value: "{{ prijs3 | default(0) }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.factuur_regel3_btw}
+        data: {option: "{{ btw3 | default('21') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "✅ {{ factuurnummer }} geladen — pas aan en klik Bijwerken"}
+
+  erp_inkoop_laden_formulier:
+    alias: "ERP: Inkoop laden in formulier"
+    mode: single
+    fields:
+      inkoop_id:    {description: Inkoop ID}
+      factuurnummer: {description: Factuurnummer leverancier}
+      datum:        {description: Datum}
+      omschrijving: {description: Omschrijving}
+      bedrag:       {description: Bedrag excl BTW}
+      btw:          {description: BTW percentage}
+      grootboek:    {description: Grootboekrekening}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_huidig_id}
+        data: {value: "{{ inkoop_id }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_factuurnummer}
+        data: {value: "{{ factuurnummer | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_datum}
+        data: {value: "{{ datum | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_omschrijving}
+        data: {value: "{{ omschrijving | default('') }}"}
+      - service: input_number.set_value
+        target: {entity_id: input_number.inkoop_bedrag}
+        data: {value: "{{ bedrag | default(0) }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.inkoop_btw}
+        data: {option: "{{ btw | default('21') }}"}
+      - service: input_select.select_option
+        target: {entity_id: input_select.inkoop_grootboek}
+        data: {option: "{{ grootboek }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "✅ Inkoop geladen — pas aan en klik Bijwerken"}
+
+  erp_wachtrij_laden:
+    alias: "ERP: Wachtrij slots laden vanuit n8n"
+    mode: single
+    fields:
+      slot1:  {description: Slot 1 data}
+      slot2:  {description: Slot 2 data}
+      slot3:  {description: Slot 3 data}
+      slot4:  {description: Slot 4 data}
+      slot5:  {description: Slot 5 data}
+      slot6:  {description: Slot 6 data}
+      slot7:  {description: Slot 7 data}
+      slot8:  {description: Slot 8 data}
+      slot9:  {description: Slot 9 data}
+      slot10: {description: Slot 10 data}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_1}
+        data: {value: "{{ slot1 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_2}
+        data: {value: "{{ slot2 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_3}
+        data: {value: "{{ slot3 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_4}
+        data: {value: "{{ slot4 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_5}
+        data: {value: "{{ slot5 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_6}
+        data: {value: "{{ slot6 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_7}
+        data: {value: "{{ slot7 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_8}
+        data: {value: "{{ slot8 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_9}
+        data: {value: "{{ slot9 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.wachtrij_slot_10}
+        data: {value: "{{ slot10 | default('') }}"}
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.wachtrij_verstuur_1
+            - input_boolean.wachtrij_verstuur_2
+            - input_boolean.wachtrij_verstuur_3
+            - input_boolean.wachtrij_verstuur_4
+            - input_boolean.wachtrij_verstuur_5
+            - input_boolean.wachtrij_verstuur_6
+            - input_boolean.wachtrij_verstuur_7
+            - input_boolean.wachtrij_verstuur_8
+            - input_boolean.wachtrij_verstuur_9
+            - input_boolean.wachtrij_verstuur_10
