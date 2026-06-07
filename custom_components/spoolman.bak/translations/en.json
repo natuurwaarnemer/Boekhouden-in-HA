@@ -1,0 +1,42 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Configuration",
+                "data": {
+                    "spoolman_url": "Host (incl. protocol)",
+                    "update-interval": "Update interval (minutes)",
+                    "show_archived": "Show archived",
+                    "notification_threshold_info": "Threshold Info",
+                    "notification_threshold_warning": "Threshold Warning",
+                    "notification_threshold_critical": "Threshold Critical",
+                    "klipper_url": "Klipper url",
+                    "klipper_url_desc": "Klipper url"
+                }
+            }
+        },
+        "error": {
+            "already_configured": "Device is already configured"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Konfiguration",
+                "data": {
+                    "spoolman_url": "Host (incl. protocol)",
+                    "update-interval": "Update interval (minutes)",
+                    "show_archived": "Show archived",
+                    "notification_threshold_info": "Threshold Info",
+                    "notification_threshold_warning": "Threshold Warning",
+                    "notification_threshold_critical": "Threshold Critical",
+                    "klipper_url": "Klipper url",
+                    "klipper_url_desc": "Klipper url"
+                }
+            }
+        }
+    }
+}

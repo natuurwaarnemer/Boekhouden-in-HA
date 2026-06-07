@@ -1,0 +1,44 @@
+
+# configuration.yaml — begin (top-level)
+# Zorg dat 'packages' op top-level staat (geen inspringing onder homeassistant)
+homeassistant:
+  packages: !include_dir_named packages
+
+  allowlist_external_dirs:
+    - "/media"
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Frontend + themes (merge named theme files in /config/themes)
+frontend:
+  themes: !include_dir_merge_named themes
+    
+# Standard includes
+automation: !include automations.yaml
+scene: !include scenes.yaml
+
+# Include your scripts file
+# script: !include scripts.yaml
+python_script:
+
+
+# Templates: include the generated template file
+# Put your original template.yaml into /config/templates (rename if preferred).
+
+# template: !include templates/birdnet_template_generated.yaml
+
+
+# Shell command to run the bash generator
+# Shell command to run the bash generator
+
+shell_command:
+  k1max_purge_log: 'bash -c "truncate -s 0 /config/k1max_print_log.txt"'
+  k1max_export_log: 'bash -c "mkdir -p /config/www && cp /config/k1max_print_log.txt /config/www/{{ filename }}"'
+  k1max_write_log: 'bash -c "echo \"{{ message }}\" >> /config/k1max_print_log.txt"'
+  
+input_datetime:
+  birdnet_template_last_run:
+    name: "BirdNET template last run"
+    has_date: true
+    has_time: true
+

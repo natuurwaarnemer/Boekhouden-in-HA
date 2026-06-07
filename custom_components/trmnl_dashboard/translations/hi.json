@@ -1,0 +1,159 @@
+{
+  "title": "TRMNL Dashboard",
+  "config": {
+    "step": {
+      "user": {
+        "title": "TRMNL Dashboard सेटअप",
+        "description": "अपना TRMNL Dashboard इंटीग्रेशन कॉन्फ़िगर करें।",
+        "data": {
+          "webhook_url": "Webhook URL",
+          "layout": "लेआउट",
+          "pill_position": "पिल स्थिति",
+          "show_title_bar": "शीर्षक पट्टी दिखाएं",
+          "show_entity_title": "इकाई शीर्षक दिखाएं",
+          "show_entity_icon": "इकाई आइकन दिखाएं",
+          "scale": "स्केल",
+          "pill_entities": "पिल इकाइयाँ",
+          "group_0_name": "समूह 1 के लिए नाम",
+          "group_0_entities": "समूह 1 के लिए इकाइयाँ",
+          "group_1_name": "समूह 2 के लिए नाम",
+          "group_1_entities": "समूह 2 के लिए इकाइयाँ",
+          "group_2_name": "समूह 3 के लिए नाम",
+          "group_2_entities": "समूह 3 के लिए इकाइयाँ",
+          "group_3_name": "समूह 4 के लिए नाम",
+          "group_3_entities": "समूह 4 के लिए इकाइयाँ",
+          "group_4_name": "समूह 5 के लिए नाम",
+          "group_4_entities": "समूह 5 के लिए इकाइयाँ",
+          "group_5_name": "समूह 6 के लिए नाम",
+          "group_5_entities": "समूह 6 के लिए इकाइयाँ",
+          "group_6_name": "समूह 7 के लिए नाम",
+          "group_6_entities": "समूह 7 के लिए इकाइयाँ",
+          "group_7_name": "समूह 8 के लिए नाम",
+          "group_7_entities": "समूह 8 के लिए इकाइयाँ",
+          "group_8_name": "समूह 9 के लिए नाम",
+          "group_8_entities": "समूह 9 के लिए इकाइयाँ",
+          "group_9_name": "समूह 10 के लिए नाम",
+          "group_9_entities": "समूह 10 के लिए इकाइयाँ",
+          "group_10_name": "समूह 11 के लिए नाम",
+          "group_10_entities": "समूह 11 के लिए इकाइयाँ",
+          "group_11_name": "समूह 12 के लिए नाम",
+          "group_11_entities": "समूह 12 के लिए इकाइयाँ",
+          "group_12_name": "समूह 13 के लिए नाम",
+          "group_12_entities": "समूह 13 के लिए इकाइयाँ",
+          "group_13_name": "समूह 14 के लिए नाम",
+          "group_13_entities": "समूह 14 के लिए इकाइयाँ",
+          "group_14_name": "समूह 15 के लिए नाम",
+          "group_14_entities": "समूह 15 के लिए इकाइयाँ",
+          "add_another_group": "एक और समूह जोड़ें",
+          "visualization_entities": "विज़ुअलाइज़ेशन"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "TRMNL Dashboard विकल्प",
+        "description": "पिल इकाइयों को संपादित करें और समूहों को कॉन्फ़िगर करें।",
+        "data": {
+          "webhook_url": "Webhook URL",
+          "layout": "लेआउट",
+          "pill_position": "पिल स्थिति",
+          "show_title_bar": "शीर्षक पट्टी दिखाएं",
+          "show_entity_title": "इकाई शीर्षक दिखाएं",
+          "show_entity_icon": "इकाई आइकन दिखाएं",
+          "scale": "स्केल",
+          "pill_entities": "पिल इकाइयाँ",
+          "group_0_name": "समूह 1 के लिए नाम",
+          "group_0_entities": "समूह 1 के लिए इकाइयाँ",
+          "remove_group_0": "समूह 1 हटाएँ",
+          "group_1_name": "समूह 2 के लिए नाम",
+          "group_1_entities": "समूह 2 के लिए इकाइयाँ",
+          "remove_group_1": "समूह 2 हटाएँ",
+          "group_2_name": "समूह 3 के लिए नाम",
+          "group_2_entities": "समूह 3 के लिए इकाइयाँ",
+          "remove_group_2": "समूह 3 हटाएँ",
+          "group_3_name": "समूह 4 के लिए नाम",
+          "group_3_entities": "समूह 4 के लिए इकाइयाँ",
+          "remove_group_3": "समूह 4 हटाएँ",
+          "group_4_name": "समूह 5 के लिए नाम",
+          "group_4_entities": "समूह 5 के लिए इकाइयाँ",
+          "remove_group_4": "समूह 5 हटाएँ",
+          "group_5_name": "समूह 6 के लिए नाम",
+          "group_5_entities": "समूह 6 के लिए इकाइयाँ",
+          "remove_group_5": "समूह 6 हटाएँ",
+          "group_6_name": "समूह 7 के लिए नाम",
+          "group_6_entities": "समूह 7 के लिए इकाइयाँ",
+          "remove_group_6": "समूह 7 हटाएँ",
+          "group_7_name": "समूह 8 के लिए नाम",
+          "group_7_entities": "समूह 8 के लिए इकाइयाँ",
+          "remove_group_7": "समूह 8 हटाएँ",
+          "group_8_name": "समूह 9 के लिए नाम",
+          "group_8_entities": "समूह 9 के लिए इकाइयाँ",
+          "remove_group_8": "समूह 9 हटाएँ",
+          "group_9_name": "समूह 10 के लिए नाम",
+          "group_9_entities": "समूह 10 के लिए इकाइयाँ",
+          "remove_group_9": "समूह 10 हटाएँ",
+          "group_10_name": "समूह 11 के लिए नाम",
+          "group_10_entities": "समूह 11 के लिए इकाइयाँ",
+          "remove_group_10": "समूह 11 हटाएँ",
+          "group_11_name": "समूह 12 के लिए नाम",
+          "group_11_entities": "समूह 12 के लिए इकाइयाँ",
+          "remove_group_11": "समूह 12 हटाएँ",
+          "group_12_name": "समूह 13 के लिए नाम",
+          "group_12_entities": "समूह 13 के लिए इकाइयाँ",
+          "remove_group_12": "समूह 13 हटाएँ",
+          "group_13_name": "समूह 14 के लिए नाम",
+          "group_13_entities": "समूह 14 के लिए इकाइयाँ",
+          "remove_group_13": "समूह 14 हटाएँ",
+          "group_14_name": "समूह 15 के लिए नाम",
+          "group_14_entities": "समूह 15 के लिए इकाइयाँ",
+          "remove_group_14": "समूह 15 हटाएँ",
+          "add_another_group": "एक और समूह जोड़ें",
+          "visualization_entities": "विज़ुअलाइज़ेशन"
+        }
+      }
+    }
+  },
+  "selector": {
+    "layout": {
+      "options": {
+        "groups": "समूह",
+        "list": "सूची"
+      }
+    },
+    "pill_position": {
+      "options": {
+        "top": "शीर्ष",
+        "bottom": "नीचे",
+        "left": "बाएँ",
+        "right": "दाएँ"
+      }
+    },
+    "show_title_bar": {
+      "options": {
+        "true": "दिखाएं",
+        "false": "छिपाएं"
+      }
+    },
+    "show_entity_title": {
+      "options": {
+        "true": "दिखाएं",
+        "false": "छिपाएं"
+      }
+    },
+    "show_entity_icon": {
+      "options": {
+        "true": "दिखाएं",
+        "false": "छिपाएं"
+      }
+    },
+    "scale": {
+      "options": {
+        "small": "छोटा",
+        "normal": "सामान्य",
+        "big": "बड़ा"
+      }
+    }
+  }
+}

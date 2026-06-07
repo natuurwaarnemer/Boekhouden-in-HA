@@ -1,12 +1,46 @@
-secrets.yaml
+# Databases
+*.db
+*.db-shm
+*.db-wal
+databases/
+
+# Locks & logs
+*.lock
 *.log
-home-assistant.log*
-home-assistant_v2.db*
-.storage/
-.cloud/
-.HA_VERSION
-custom_components/
-deps/
-tts/
-tmp/
+
+# Cache & interne Claude bestanden
+.cache/
+.claude/
+
+# Backups
+*.bak.*
+*.backup_*
+k1max_filament,OLD
+
+# Logbestanden
+k1max_print_log.txt
+
+# Tijdelijke bestanden
+recorder_WAIITING.yaml
+
+# Claude Code intern
 .claudecode/
+
+# Secrets / API keys
+secrets.yaml
+.storage/
+
+# SSL/Cloud credentials
+.cloud/
+*.pem
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logbestanden (alle varianten)
+home-assistant.log*
+*.log.*
+
+# TTS cache
+tts/

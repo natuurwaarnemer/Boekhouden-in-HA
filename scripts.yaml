@@ -1,0 +1,22 @@
+# scripts.yaml (included via configuration.yaml)
+update_bird_images_and_reload:
+  alias: Run BirdNET generator and update timestamp
+  sequence:
+    - service: shell_command.birdnet_run_generator
+    - service: input_datetime.set_datetime
+      data:
+        entity_id: input_datetime.birdnet_template_last_run
+        date: "{{ now().strftime('%Y-%m-%d') }}"
+        time: "{{ now().strftime('%H:%M:%S') }}"
+  mode: single
+
+birdnet_run_and_stamp:
+  alias: Run BirdNET generator and stamp
+  sequence:
+    - service: shell_command.birdnet_run_generator
+    - delay: '00:00:05'   # kleine pauze zodat het script kan afronden; verhoog naar '00:00:05' als nodig
+    - service: input_datetime.set_datetime
+      data:
+        entity_id: input_datetime.birdnet_template_last_run
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  mode: single

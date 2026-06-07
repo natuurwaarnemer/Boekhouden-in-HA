@@ -1,0 +1,39 @@
+default:
+  name: Default
+  version: ''
+  creator: ''
+  supported:
+    - button
+    - climate
+    - cover
+    - horizontal-buttons-stack
+    - media-player
+    - pop-up
+    - select
+    - separator
+    - sub-buttons
+  description: Empty and enabled by default. Add your custom styles and/or JS templates here to apply them to all cards by pressing the <ha-icon icon="mdi:pencil"></ha-icon> button above.
+  code: |-
+    styles: | 
+      ha-card {
+        --bubble-main-background-color: rgba(12,120,50,0.5) !important;
+      }
+      styles: |
+      .bubble-icon {
+        --mdc-icon-size: 35px !important;
+      }
+      styles: |
+      * { 
+        font-size: 16px !important;
+      }
+     styles: |
+      .bubble-range-fill { 
+        background: rgba(0, 128, 87, 8) !important;
+        opacity: 1 !important;
+      }
+      styles: |
+      .bubble-icon {
+        color: yellow !important;
+      }
+  editor: []
+  is_global: true

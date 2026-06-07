@@ -1,0 +1,421 @@
+Graphics card:
+  name: Graphics card
+  version: '1.0'
+  creator: natuurwaarnemer
+  description: ''
+  code: |-
+    ${(() => {
+      const cfg    = this.config?.sensor_graph;
+      const entity = cfg?.graph_entity || this.config?.entity;
+      if (!entity) return '';
+
+      const hours       = Number(cfg?.graph_hours    ?? 24);
+      const height      = cfg?.graph_height          ?? 80;
+      const lineWidth   = cfg?.graph_line_width      ?? 2;
+      const fill        = cfg?.graph_fill            ?? 'fade';
+      const showState   = cfg?.graph_show_state      ?? false;
+      const showLabels  = cfg?.graph_show_labels     ?? false;
+      const animate     = cfg?.graph_animate         ?? true;
+      const smoothing   = cfg?.graph_smoothing       ?? true;
+      const points      = cfg?.graph_points_per_hour ?? 1;
+      const aggregate   = cfg?.graph_aggregate       ?? 'avg';
+      const lowerBound  = cfg?.graph_lower_bound;
+      const upperBound  = cfg?.graph_upper_bound;
+      const opacity     = parseFloat(cfg?.graph_opacity ?? 1);
+      const inCard      = cfg?.graph_in_card         ?? false;
+      const neonOverride = cfg?.neon_color;
+
+      const entity2    = cfg?.graph_entity_2;
+      const entity3    = cfg?.graph_entity_3;
+      const lineColor2 = (cfg?.graph_line_color_2 && cfg.graph_line_color_2 !== '') ? cfg.graph_line_color_2 : '#ff9800';
+      const lineColor3 = (cfg?.graph_line_color_3 && cfg.graph_line_color_3 !== '') ? cfg.graph_line_color_3 : '#00e5ff';
+
+      const haCardEl = card.querySelector('ha-card') || card;
+      if (neonOverride && neonOverride !== '') {
+        haCardEl.style.setProperty('--bc-start', neonOverride);
+        haCardEl.style.setProperty('--bc-end', neonOverride);
+        haCardEl.style.setProperty('--bc-icon-bg', neonOverride);
+      }
+
+      const neonColor = getComputedStyle(card).getPropertyValue('--bc-start').trim();
+      const lineColor = (cfg?.graph_line_color && cfg.graph_line_color !== '')
+                        ? cfg.graph_line_color
+                        : (neonColor || '#00e5ff');
+
+      const entities = [{ entity, color: lineColor }];
+      if (entity2 && entity2 !== '') entities.push({ entity: entity2, color: lineColor2 });
+      if (entity3 && entity3 !== '') entities.push({ entity: entity3, color: lineColor3 });
+
+      const showLegend = entities.length > 1;
+
+      const id = 'bcmg_' + entity.replace(/\./g, '_');
+      const haCard = card.querySelector('ha-card') || card;
+
+      const styleId = 'bcmg-style-' + id;
+      const oldStyle = haCard.querySelector('#' + styleId);
+      if (oldStyle) oldStyle.remove();
+
+      const style = document.createElement('style');
+      style.id = styleId;
+      let css = '';
+
+      if (inCard) {
+        css += '.bubble-name-container {';
+        css += 'position: absolute !important;';
+        css += 'top: 12px !important;';
+        css += 'left: 56px !important;';
+        css += 'bottom: auto !important;';
+        css += 'transform: none !important;';
+        css += '}';
+        css += '.bubble-state {';
+        css += 'position: absolute !important;';
+        css += 'top: 32px !important;';
+        css += 'left: 56px !important;';
+        css += 'bottom: auto !important;';
+        css += '}';
+      }
+
+      css += '#' + id + ' { opacity: ' + opacity + '; }';
+
+      css += '#' + id + ' mini-graph-card ha-card {';
+      css += 'background: ' + (inCard ? 'transparent' : 'var(--ha-card-background)') + ' !important;';
+      css += 'box-shadow: none !important;';
+      css += 'border: none !important;';
+      css += '}';
+
+      style.textContent = css;
+      haCard.appendChild(style);
+
+      const existing = haCard.querySelector('#' + id);
+      if (existing) {
+        const g = existing._graphCard;
+        if (g) g.hass = hass;
+
+        const stateBar = haCard.querySelector('#bcmg-state-' + id);
+        if (stateBar) {
+          const allEntities = [
+            { entity: entity,  color: lineColor  },
+            { entity: entity2, color: lineColor2 },
+            { entity: entity3, color: lineColor3 },
+          ].filter(e => e.entity && e.entity !== '');
+
+          const items = stateBar.querySelectorAll('span.bcmg-val');
+          allEntities.forEach((e, i) => {
+            if (items[i]) {
+              const so = hass.states[e.entity];
+              const rawValue = so ? so.state : '';
+              const numValue = parseFloat(rawValue);
+              const displayValue = isNaN(numValue) ? rawValue : numValue.toFixed(2);
+              const unit = so?.attributes?.unit_of_measurement ?? '';
+              items[i].textContent = displayValue + ' ' + unit;
+            }
+          });
+        }
+        return '';
+      }
+
+      const MiniGraph = customElements.get('mini-graph-card');
+      if (!MiniGraph) {
+        const warn = document.createElement('div');
+        warn.id = id;
+        warn.style.cssText = 'padding:8px 12px;color:orange;font-size:12px;';
+        warn.textContent = 'mini-graph-card niet gevonden — installeer via HACS';
+        haCard.appendChild(warn);
+        return '';
+      }
+
+      const graphConfig = {
+        type: 'custom:mini-graph-card',
+        entities: entities,
+        hours_to_show: hours,
+        height,
+        line_width: lineWidth,
+        animate,
+        smoothing,
+        points_per_hour: points,
+        aggregate_func: aggregate,
+        group: true,
+        show: {
+          icon: false,
+          name: false,
+          state: false,
+          fill,
+          labels: showLabels === 'true' ? true : showLabels === 'hover' ? 'hover' : false,
+          extrema: true,
+          average: false,
+          points: 'hover',
+          legend: showLegend,
+        },
+      };
+
+      if (lowerBound !== undefined && lowerBound !== null && lowerBound !== '') {
+        graphConfig.lower_bound = Number(lowerBound);
+      }
+      if (upperBound !== undefined && upperBound !== null && upperBound !== '') {
+        graphConfig.upper_bound = Number(upperBound);
+      }
+
+      const container = document.createElement('div');
+      container.id = id;
+
+      if (inCard) {
+        haCard.style.position = 'relative';
+        haCard.style.overflow = 'hidden';
+
+        container.style.cssText =
+          'position:absolute;' +
+          'top:60px;bottom:0;left:0;right:0;' +
+          'width:100%;' +
+          'overflow:hidden;' +
+          'pointer-events:none;' +
+          'border-radius:0 0 var(--ha-card-border-radius,12px) var(--ha-card-border-radius,12px);';
+
+        if (showState) {
+          const stateBar = document.createElement('div');
+          stateBar.id = 'bcmg-state-' + id;
+          stateBar.style.cssText =
+            'position:absolute;' +
+            'top:8px;left:50%;' +
+            'transform:translateX(-50%);' +
+            'display:flex;' +
+            'gap:16px;' +
+            'align-items:center;' +
+            'pointer-events:none;' +
+            'z-index:10;';
+
+          const allEntities = [
+            { entity: entity,  color: lineColor  },
+            { entity: entity2, color: lineColor2 },
+            { entity: entity3, color: lineColor3 },
+          ].filter(e => e.entity && e.entity !== '');
+
+          allEntities.forEach(e => {
+            const so = hass.states[e.entity];
+            const rawValue = so ? so.state : '';
+            const numValue = parseFloat(rawValue);
+            const displayValue = isNaN(numValue) ? rawValue : numValue.toFixed(2);
+            const unit = so?.attributes?.unit_of_measurement ?? '';
+
+            const item = document.createElement('div');
+            item.style.cssText =
+              'display:flex;' +
+              'align-items:center;' +
+              'gap:6px;' +
+              'color:white;' +
+              'font-size:13px;' +
+              'font-weight:600;' +
+              'text-shadow:0 1px 3px rgba(0,0,0,0.8);';
+
+            const dot = document.createElement('span');
+            dot.style.cssText =
+              'width:10px;height:10px;' +
+              'border-radius:50%;' +
+              'background:' + e.color + ';' +
+              'display:inline-block;' +
+              'flex-shrink:0;';
+
+            const val = document.createElement('span');
+            val.className = 'bcmg-val';
+            val.textContent = displayValue + ' ' + unit;
+
+            item.appendChild(dot);
+            item.appendChild(val);
+            stateBar.appendChild(item);
+          });
+
+          container.appendChild(stateBar);
+        }
+
+        try {
+          const g = new MiniGraph();
+          g.setConfig(graphConfig);
+          g.hass = hass;
+          g.style.cssText =
+            '--ha-card-box-shadow:none;' +
+            '--ha-card-border-width:0px;' +
+            '--ha-card-background:transparent;' +
+            'display:block;';
+          container._graphCard = g;
+          container.appendChild(g);
+          haCard.appendChild(container);
+        } catch(e) {
+          console.warn('[sensor_graph module]', e);
+        }
+
+      } else {
+        container.style.cssText =
+          'width:100%;' +
+          'box-sizing:border-box;' +
+          'display:block;' +
+          'overflow:hidden;' +
+          'border-radius:0 0 var(--ha-card-border-radius,12px) var(--ha-card-border-radius,12px);';
+
+        try {
+          const g = new MiniGraph();
+          g.setConfig(graphConfig);
+          g.hass = hass;
+          g.style.cssText =
+            '--ha-card-box-shadow:none;' +
+            '--ha-card-border-width:0px;';
+          container._graphCard = g;
+          container.appendChild(g);
+          haCard.appendChild(container);
+        } catch(e) {
+          console.warn('[sensor_graph module]', e);
+        }
+      }
+
+      return '';
+    })()}
+  editor:
+    - name: graph_entity
+      label: 📡 Sensor entity (leeg = zelfde als kaart)
+      selector:
+        entity: {}
+    - name: graph_entity_2
+      label: 📡 Tweede sensor entity (optioneel)
+      selector:
+        entity: {}
+    - name: graph_entity_3
+      label: 📡 Derde sensor entity (optioneel)
+      selector:
+        entity: {}
+    - name: graph_hours
+      label: ⏱️ Geschiedenis periode
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: 1 uur
+              value: '1'
+            - label: 3 uur
+              value: '3'
+            - label: 6 uur
+              value: '6'
+            - label: 12 uur
+              value: '12'
+            - label: 24 uur
+              value: '24'
+            - label: 2 dagen
+              value: '48'
+            - label: 7 dagen
+              value: '168'
+    - name: graph_height
+      label: 📐 Hoogte grafiek
+      selector:
+        number:
+          min: 60
+          max: 400
+          step: 10
+          unit_of_measurement: px
+          mode: slider
+    - name: graph_aggregate
+      label: 📊 Aggregatie functie
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Gemiddelde (avg)
+              value: avg
+            - label: Mediaan
+              value: median
+            - label: Minimum
+              value: min
+            - label: Maximum
+              value: max
+            - label: Som
+              value: sum
+            - label: Verschil (delta)
+              value: delta
+    - name: graph_points_per_hour
+      label: 🔢 Datapunten per uur
+      selector:
+        number:
+          min: 0.1
+          max: 60
+          step: 0.1
+          mode: box
+    - name: graph_lower_bound
+      label: ⬇️ Y-as minimum (leeg = auto)
+      selector:
+        number:
+          mode: box
+          step: any
+    - name: graph_upper_bound
+      label: ⬆️ Y-as maximum (leeg = auto)
+      selector:
+        number:
+          mode: box
+          step: any
+    - name: neon_color
+      label: 🌈 Neon gloed kleur (leeg = automatisch)
+      selector:
+        text: {}
+    - name: graph_line_color
+      label: 🎨 Lijnkleur 1 (leeg = volgt Neon module automatisch)
+      selector:
+        text: {}
+    - name: graph_line_color_2
+      label: 🎨 Lijnkleur 2 (leeg = oranje)
+      selector:
+        text: {}
+    - name: graph_line_color_3
+      label: 🎨 Lijnkleur 3 (leeg = cyaan)
+      selector:
+        text: {}
+    - name: graph_line_width
+      label: 〰️ Lijndikte
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 0.5
+          mode: slider
+    - name: graph_fill
+      label: 🖌️ Vlakopvulling
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Verloop (fade)
+              value: fade
+            - label: Gevuld
+              value: 'true'
+            - label: Geen
+              value: 'false'
+    - name: graph_opacity
+      label: 🔆 Doorzichtigheid grafiek (0=onzichtbaar, 1=volledig)
+      selector:
+        number:
+          min: 0.1
+          max: 1
+          step: 0.05
+          mode: slider
+    - name: graph_in_card
+      label: 🖼️ Grafiek IN de kaart (als achtergrond)
+      selector:
+        boolean: {}
+    - name: graph_show_state
+      label: 🔢 Waarde tonen
+      selector:
+        boolean: {}
+    - name: graph_show_labels
+      label: 📏 Y-as labels
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Bij hover
+              value: hover
+            - label: Altijd
+              value: 'true'
+            - label: Nooit
+              value: 'false'
+    - name: graph_animate
+      label: ✨ Animatie bij laden
+      selector:
+        boolean: {}
+    - name: graph_smoothing
+      label: 〰️ Vloeiende lijn
+      selector:
+        boolean: {}

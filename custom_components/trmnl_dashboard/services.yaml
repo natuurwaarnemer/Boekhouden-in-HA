@@ -1,0 +1,4 @@
+reload:
+  name: Reload TRMNL Dashboard
+  description: Reloads the TRMNL Dashboard integration without restarting Home Assistant.
+  fields: {}

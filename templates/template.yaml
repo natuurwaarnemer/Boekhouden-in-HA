@@ -1,0 +1,36 @@
+  - sensors:
+      toner_black_verbruik:
+        friendly_name: "Toner black"
+        unique_id: "toner_black_verbruik"
+        value_template: >-
+          {% set s = states('sensor.canon_mf650c_series_canon_cartridge_067_black_toner') %}
+          {{ s if s not in ['', 'unknown', 'unavailable', 'none'] else none }}
+        unit_of_measurement: '%'
+        state_class: measurement
+
+      toner_cyan_verbruik:
+        friendly_name: "Toner cyan"
+        unique_id: "toner_cyan_verbruik"
+        value_template: >-
+          {% set s = states('sensor.canon_mf650c_series_canon_cartridge_067_cyan_toner') %}
+          {{ s if s not in ['', 'unknown', 'unavailable', 'none'] else none }}
+        unit_of_measurement: '%'
+        state_class: measurement
+
+      toner_magenta_verbruik:
+        friendly_name: "Toner magenta"
+        unique_id: "toner_magenta_verbruik"
+        value_template: >-
+          {% set s = states('sensor.canon_mf650c_series_canon_cartridge_067_magenta_to') %}
+          {{ s if s not in ['', 'unknown', 'unavailable', 'none'] else none }}
+        unit_of_measurement: '%'
+        state_class: measurement
+
+      toner_yellow_verbruik:
+        friendly_name: "Toner yellow"
+        unique_id: "toner_yellow_verbruik"
+        value_template: >-
+          {% set s = states('sensor.canon_mf650c_series_canon_cartridge_067_yellow_ton') %}
+          {{ s if s not in ['', 'unknown', 'unavailable', 'none'] else none }}
+        unit_of_measurement: '%'
+        state_class: measurement

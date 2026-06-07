@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Seeed HA 设备",
+        "description": "添加一个 Seeed HA WiFi 设备。请输入 ESP32 设备的 IP 地址。",
+        "data": {
+          "host": "IP 地址",
+          "port": "WebSocket 端口"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "发现 WiFi 设备",
+        "description": "发现了一个 Seeed HA WiFi 设备:\n\n**设备名称:** {name}\n**型号:** {model}\n**地址:** {host}\n\n是否添加此设备？"
+      },
+      "bluetooth_confirm": {
+        "title": "发现蓝牙设备",
+        "description": "发现了一个 Seeed HA 蓝牙设备:\n\n**设备名称:** {name}\n**型号:** {model}\n**蓝牙地址:** {address}\n**当前传感器:** {sensors}\n**支持控制:** {control}\n\n是否添加此设备？"
+      },
+      "confirm_already_connected": {
+        "title": "⚠️ 设备已被连接",
+        "description": "**警告:** 此设备已连接到另一个 Home Assistant 实例。\n\n**设备名称:** {name}\n**地址:** {host}\n\n添加此设备可能会导致冲突或意外行为。设备同一时间只能维持一个活动连接。\n\n确定要添加此设备吗？"
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到设备，请检查 IP 地址和网络连接",
+      "timeout": "连接超时，请检查设备是否在线",
+      "unknown": "发生未知错误"
+    },
+    "abort": {
+      "already_configured": "该设备已经配置过了",
+      "not_supported": "不支持的设备类型"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "配置实体订阅",
+        "description": "选择要推送到 **{device_name}** 的 Home Assistant 实体。\n\n选中的实体状态将实时发送到你的 Arduino 设备，让设备可以显示或使用这些值。",
+        "data": {
+          "subscribed_entities": "订阅的实体"
+        }
+      },
+      "wifi_entities": {
+        "title": "配置实体订阅",
+        "description": "选择要推送到 **{device_name}** 的 Home Assistant 实体。\n\n选中的实体状态将实时发送到你的 Arduino 设备，让设备可以显示或使用这些值。",
+        "data": {
+          "subscribed_entities": "订阅的实体"
+        }
+      },
+      "ble_entities": {
+        "title": "配置 BLE 实体订阅",
+        "description": "选择要通过蓝牙推送到 **{device_name}** 的 Home Assistant 实体。\n\n⚠️ **注意:** BLE 带宽有限，最多可订阅 **{max_entities}** 个实体。\n\n实体将按选择顺序分配索引 0, 1, 2...，请确保你的 Arduino 代码订阅了相同的索引。",
+        "data": {
+          "ble_subscribed_entities": "订阅的实体（最多 16 个）"
+        }
+      }
+    },
+    "abort": {
+      "ble_not_supported": "BLE 设备不支持实体订阅，此功能仅适用于 WiFi 设备。",
+      "ble_control_not_supported": "此 BLE 设备不支持双向通信。实体订阅需要启用了 GATT 控制服务的设备。"
+    }
+  }
+}
