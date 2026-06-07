@@ -1,2 +1,0 @@
-# shell_command.yaml (included via configuration.yaml)
-update_birdnet_template: '/config/scripts/generate_birdnet_template.sh'

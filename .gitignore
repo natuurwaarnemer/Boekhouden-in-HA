@@ -1,46 +1,29 @@
-# Databases
-*.db
-*.db-shm
-*.db-wal
-databases/
+# Negeer alles standaard
+*
 
-# Locks & logs
-*.lock
-*.log
+# Uitzondering: deze bestanden wel tracken
+!.gitignore
+!secrets.yaml.example
 
-# Cache & interne Claude bestanden
-.cache/
-.claude/
+# ERP packages
+!packages/
+packages/*
+!packages/erp_input_helpers.yaml
+!packages/erp_instellingen.yaml
+!packages/erp_kostensoort.yaml
+!packages/erp_rapport.yaml
 
-# Backups
-*.bak.*
-*.backup_*
-k1max_filament,OLD
+# Logo voor factuur PDF
+!www/
+www/*
+!www/logo_nw.png
 
-# Logbestanden
-k1max_print_log.txt
+# n8n workflow exports (nog toe te voegen)
+!n8n/
+n8n/*
+!n8n/*.json
 
-# Tijdelijke bestanden
-recorder_WAIITING.yaml
-
-# Claude Code intern
-.claudecode/
-
-# Secrets / API keys
-secrets.yaml
-.storage/
-
-# SSL/Cloud credentials
-.cloud/
-*.pem
-
-# Python cache
-__pycache__/
-*.pyc
-
-# Logbestanden (alle varianten)
-home-assistant.log*
-*.log.*
-
-# TTS cache
-tts/
+# Database schema (nog toe te voegen)
+!sql/
+sql/*
+!sql/*.sql
