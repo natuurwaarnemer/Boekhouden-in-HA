@@ -38,6 +38,7 @@ rest_command:
     payload: >
       {
         "factuurnummer":  "{{ states('input_text.factuur_huidig_nummer') }}",
+        "project":        "{{ states('input_text.factuur_project') }}",
         "notities":       "{{ states('input_text.factuur_notities') }}",
         "omschrijving1":  "{{ states('input_text.factuur_regel1_omschrijving') }}",
         "aantal1":        {{ states('input_number.factuur_regel1_aantal') }},
@@ -283,7 +284,7 @@ automation:
 
   # ── FACTUREN CRUD ────────────────────────────────────────
   - id: automation_factuur_selecteer_gewijzigd
-    alias: "ERP: Factuurnummer zetten bij selectie"
+    alias: "ERP: Factuur selectie → direct laden"
     trigger:
       - platform: state
         entity_id: input_select.factuur_selecteer
@@ -295,6 +296,13 @@ automation:
         target: {entity_id: input_text.factuur_huidig_nummer}
         data:
           value: "{{ states('input_select.factuur_selecteer').split(' | ')[0] }}"
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_beheer_status}
+        data: {value: "⏳ Factuur laden..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_factuur_detail_webhook
     mode: single
 
   - id: automation_factuur_klant_gewijzigd
@@ -310,8 +318,29 @@ automation:
         target: {entity_id: input_select.factuur_selecteer}
         data: {option: "--- Selecteer factuur ---"}
       - service: input_text.set_value
-        target: {entity_id: input_text.factuur_beheer_status}
-        data: {value: "⏳ Facturen ophalen..."}
+        target:
+          entity_id:
+            - input_text.factuur_huidig_nummer
+            - input_text.factuur_notities
+            - input_text.factuur_regel1_omschrijving
+            - input_text.factuur_regel2_omschrijving
+            - input_text.factuur_regel3_omschrijving
+            - input_text.factuur_beheer_status
+        data: {value: ""}
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.factuur_regel1_aantal
+            - input_number.factuur_regel2_aantal
+            - input_number.factuur_regel3_aantal
+        data: {value: 1}
+      - service: input_number.set_value
+        target:
+          entity_id:
+            - input_number.factuur_regel1_prijs
+            - input_number.factuur_regel2_prijs
+            - input_number.factuur_regel3_prijs
+        data: {value: 0}
       - service: input_text.set_value
         target: {entity_id: input_text.erp_status}
         data: {value: ""}
@@ -401,8 +430,17 @@ automation:
         target: {entity_id: input_select.inkoop_selecteer}
         data: {option: "--- Selecteer inkoop ---"}
       - service: input_text.set_value
-        target: {entity_id: input_text.inkoop_beheer_status}
-        data: {value: "⏳ Inkopen ophalen..."}
+        target:
+          entity_id:
+            - input_text.inkoop_huidig_id
+            - input_text.inkoop_factuurnummer
+            - input_text.inkoop_datum
+            - input_text.inkoop_omschrijving
+            - input_text.inkoop_beheer_status
+        data: {value: ""}
+      - service: input_number.set_value
+        target: {entity_id: input_number.inkoop_bedrag}
+        data: {value: 0}
       - service: input_text.set_value
         target: {entity_id: input_text.erp_status}
         data: {value: ""}
@@ -410,7 +448,7 @@ automation:
     mode: single
 
   - id: automation_inkoop_selecteer_gewijzigd
-    alias: "ERP: Inkoop ID zetten bij selectie"
+    alias: "ERP: Inkoop selectie → direct laden"
     trigger:
       - platform: state
         entity_id: input_select.inkoop_selecteer
@@ -422,6 +460,13 @@ automation:
         target: {entity_id: input_text.inkoop_huidig_id}
         data:
           value: "{{ states('input_select.inkoop_selecteer').split(' | ')[0] }}"
+      - service: input_text.set_value
+        target: {entity_id: input_text.inkoop_beheer_status}
+        data: {value: "⏳ Inkoop laden..."}
+      - service: input_text.set_value
+        target: {entity_id: input_text.erp_status}
+        data: {value: ""}
+      - service: rest_command.n8n_inkoop_detail_webhook
     mode: single
 
   - id: automation_inkoop_lijst_ophalen
@@ -968,7 +1013,13 @@ automation:
                   title: "ERP — Factuur aangemaakt"
                   message: "{{ states('input_text.erp_status').split('|')[2] }}"
                   notification_id: erp_bevestiging_factuur
+              - service: rest_command.n8n_wachtrij_ophalen_webhook
               - delay: "00:00:05"
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.factuur_klant
+                data:
+                  option: "--- Selecteer klant ---"
               - service: input_text.set_value
                 target:
                   entity_id:
@@ -1075,14 +1126,9 @@ input_select:
   factuur_grootboek:
     name: "Grootboekrekening Omzet"
     options:
-      - "8000 Omzet diensten (21%)"
-      - "8010 Omzet diensten (9%)"
-      - "8020 Omzet diensten vrijgesteld (0%)"
-      - "8100 Omzet producten (21%)"
-      - "8110 Omzet producten (9%)"
-      - "8200 Omzet doorbelaste kosten (21%)"
-      - "8900 Omzet vrijgesteld van BTW (0%)"
-    initial: "8000 Omzet diensten (21%)"
+      - "8000 Omzet NL"
+      - "8010 Omzet EU"
+    initial: "8000 Omzet NL"
     icon: mdi:book-open-variant
 
   factuur_regel1_btw:
@@ -1112,22 +1158,26 @@ input_select:
   inkoop_grootboek:
     name: "Grootboekrekening Inkoop"
     options:
-      - "4000 Inkoopwaarde handelsgoederen (21%)"
-      - "4200 Inkoop diensten / uitbesteding (21%)"
-      - "4300 Inhuur freelancers / ZZP (21%)"
-      - "4410 Kantoorkosten (21%)"
-      - "4420 Reiskosten (0%/21%)"
-      - "4430 Marketing en reclame (21%)"
-      - "4440 Automatisering en software (21%)"
-      - "4450 Verzekeringen (0%)"
-      - "4460 Telefoon en internet (21%)"
-      - "6100 Bankkosten (0%)"
-      - "7000 Representatiekosten (21%)"
-      - "7100 Abonnementen (21%)"
-      - "7200 Advieskosten (21%)"
-      - "7300 Onderhoudskosten (21%)"
-      - "7400 Overige bedrijfskosten (21%)"
-    initial: "4410 Kantoorkosten (21%)"
+      - "4500 Contributies en abonnementen"
+      - "4510 Reclame en advertenties"
+      - "4520 Representatie en verteer"
+      - "4530 Reis- en verblijfkosten"
+      - "4540 Relatiegeschenken"
+      - "4545 Verzekeringen"
+      - "4550 Bankkosten"
+      - "4590 Overige verkoopkosten"
+      - "4600 Kilometervergoeding"
+      - "4700 Kantoorbenodigdheden"
+      - "4740 Drukwerk, porti en vrachten"
+      - "4750 Telefoon en internet"
+      - "4790 Overige kantoorkosten"
+      - "4810 Accountants- en administratiekosten"
+      - "4850 Cursussen/seminars"
+      - "4860 Vakliteratuur"
+      - "4900 Betalingsverschillen"
+      - "4950 Oninbare vorderingen"
+      - "7000 Inkopen"
+    initial: "4700 Kantoorbenodigdheden"
     icon: mdi:book-open-variant
 
   inkoop_leverancier:
@@ -1709,6 +1759,107 @@ template:
           {% set pct = states('input_select.inkoop_btw') | float(0) %}
           {{ (bedrag * (1 + pct / 100)) | round(2) }}
 
+      # ── Wachtrij bedragen (extraheer TOTAAL incl BTW uit slot string) ──
+      - name: "Factuur PDF URL"
+        unique_id: factuur_pdf_url
+        icon: mdi:file-pdf-box
+        state: >
+          http://192.168.2.35:5678/webhook/factuur-pdf?nr={{ states('input_text.factuur_huidig_nummer') }}
+
+      - name: "Wachtrij Bedrag 1"
+        unique_id: wachtrij_bedrag_1
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_1') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 2"
+        unique_id: wachtrij_bedrag_2
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_2') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 3"
+        unique_id: wachtrij_bedrag_3
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_3') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 4"
+        unique_id: wachtrij_bedrag_4
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_4') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 5"
+        unique_id: wachtrij_bedrag_5
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_5') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 6"
+        unique_id: wachtrij_bedrag_6
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_6') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 7"
+        unique_id: wachtrij_bedrag_7
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_7') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 8"
+        unique_id: wachtrij_bedrag_8
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_8') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 9"
+        unique_id: wachtrij_bedrag_9
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_9') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Bedrag 10"
+        unique_id: wachtrij_bedrag_10
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set s = states('input_text.wachtrij_slot_10') %}
+          {{ s.split('|')[5] | float(0) | round(2) if '|' in s else 0 }}
+
+      - name: "Wachtrij Geselecteerd Totaal"
+        unique_id: wachtrij_geselecteerd_totaal
+        unit_of_measurement: "€"
+        icon: mdi:cash-check
+        state: >
+          {% set ns = namespace(t=0) %}
+          {% for i in range(1, 11) %}
+            {% set s = states('input_text.wachtrij_slot_' ~ i) %}
+            {% if '|' in s and states('input_boolean.wachtrij_verstuur_' ~ i) == 'on' %}
+              {% set ns.t = ns.t + (s.split('|')[5] | float(0)) %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.t | round(2) }}
+
 
 # ---------------------------------------------------------
 # SCRIPT — Klant laden in formulier (aangeroepen door n8n)
@@ -1845,6 +1996,7 @@ script:
     mode: single
     fields:
       factuurnummer: {description: Factuurnummer}
+      project:       {description: Project}
       notities:      {description: Notities}
       omschrijving1: {description: Omschrijving regel 1}
       aantal1:       {description: Aantal regel 1}
@@ -1862,6 +2014,9 @@ script:
       - service: input_text.set_value
         target: {entity_id: input_text.factuur_huidig_nummer}
         data: {value: "{{ factuurnummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_project}
+        data: {value: "{{ project | default('') }}"}
       - service: input_text.set_value
         target: {entity_id: input_text.factuur_notities}
         data: {value: "{{ notities | default('') }}"}

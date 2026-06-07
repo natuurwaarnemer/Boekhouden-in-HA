@@ -1,0 +1,171 @@
+# =============================================================
+# Natuurwaarnemer ERP — Kosten per Grootboekrekening
+# =============================================================
+
+rest_command:
+
+  n8n_kostensoort_ophalen_webhook:
+    url: !secret n8n_webhook_kostensoort_ophalen
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "jaar":    "{{ states('input_select.rapport_jaar') }}",
+        "periode": "{{ states('input_select.rapport_periode') }}"
+      }
+
+  n8n_kostensoort_pdf_webhook:
+    url: !secret n8n_webhook_kostensoort_pdf
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "jaar":    "{{ states('input_select.rapport_jaar') }}",
+        "periode": "{{ states('input_select.rapport_periode') }}"
+      }
+
+automation:
+
+  - id: automation_kostensoort_ophalen
+    alias: "ERP: Kosten per grootboek ophalen"
+    trigger:
+      - platform: state
+        entity_id: input_button.kostensoort_ophalen
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_status}
+        data: {value: "⏳ Laden..."}
+      - service: rest_command.n8n_kostensoort_ophalen_webhook
+    mode: single
+
+  - id: automation_kostensoort_pdf
+    alias: "ERP: Kosten per grootboek PDF"
+    trigger:
+      - platform: state
+        entity_id: input_button.kostensoort_pdf
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_status}
+        data: {value: "⏳ PDF genereren..."}
+      - service: rest_command.n8n_kostensoort_pdf_webhook
+    mode: single
+
+input_text:
+
+  kostensoort_status:
+    name: "Kostensoort Status"
+    max: 100
+    initial: ""
+    icon: mdi:information
+
+  kostensoort_periode_label:
+    name: "Periode"
+    max: 50
+    initial: ""
+    icon: mdi:calendar-range
+
+  kostensoort_slot_1:  {name: "Kostensoort 1",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_2:  {name: "Kostensoort 2",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_3:  {name: "Kostensoort 3",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_4:  {name: "Kostensoort 4",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_5:  {name: "Kostensoort 5",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_6:  {name: "Kostensoort 6",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_7:  {name: "Kostensoort 7",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_8:  {name: "Kostensoort 8",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_9:  {name: "Kostensoort 9",  max: 100, initial: "", icon: mdi:tag}
+  kostensoort_slot_10: {name: "Kostensoort 10", max: 100, initial: "", icon: mdi:tag}
+
+  kostensoort_totaal_excl:
+    name: "Totaal excl BTW"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  kostensoort_totaal_btw:
+    name: "Totaal BTW"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  kostensoort_totaal_incl:
+    name: "Totaal incl BTW"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+input_button:
+
+  kostensoort_ophalen:
+    name: "Kosten per Grootboek Ophalen"
+    icon: mdi:book-open-variant
+
+  kostensoort_pdf:
+    name: "Kosten PDF (email)"
+    icon: mdi:file-pdf-box
+
+script:
+
+  erp_kostensoort_laden:
+    alias: "ERP: Kosten per grootboek laden"
+    mode: single
+    fields:
+      periode_label:  {description: Periode label}
+      slot1:          {description: Slot 1}
+      slot2:          {description: Slot 2}
+      slot3:          {description: Slot 3}
+      slot4:          {description: Slot 4}
+      slot5:          {description: Slot 5}
+      slot6:          {description: Slot 6}
+      slot7:          {description: Slot 7}
+      slot8:          {description: Slot 8}
+      slot9:          {description: Slot 9}
+      slot10:         {description: Slot 10}
+      totaal_excl:    {description: Totaal excl BTW}
+      totaal_btw:     {description: Totaal BTW}
+      totaal_incl:    {description: Totaal incl BTW}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_periode_label}
+        data: {value: "{{ periode_label }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_1}
+        data: {value: "{{ slot1 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_2}
+        data: {value: "{{ slot2 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_3}
+        data: {value: "{{ slot3 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_4}
+        data: {value: "{{ slot4 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_5}
+        data: {value: "{{ slot5 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_6}
+        data: {value: "{{ slot6 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_7}
+        data: {value: "{{ slot7 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_8}
+        data: {value: "{{ slot8 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_9}
+        data: {value: "{{ slot9 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_slot_10}
+        data: {value: "{{ slot10 | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_totaal_excl}
+        data: {value: "{{ totaal_excl }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_totaal_btw}
+        data: {value: "{{ totaal_btw }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_totaal_incl}
+        data: {value: "{{ totaal_incl }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.kostensoort_status}
+        data: {value: "✅ Geladen — {{ periode_label }}"}

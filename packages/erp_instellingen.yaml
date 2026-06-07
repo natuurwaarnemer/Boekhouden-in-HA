@@ -1,0 +1,195 @@
+# =============================================================
+# Natuurwaarnemer ERP — Bedrijfsinstellingen Module
+# =============================================================
+
+rest_command:
+
+  n8n_instellingen_opslaan_webhook:
+    url: !secret n8n_webhook_instellingen_opslaan
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "bedrijfsnaam":     "{{ states('input_text.inst_bedrijfsnaam') }}",
+        "kvk":              "{{ states('input_text.inst_kvk') }}",
+        "iban":             "{{ states('input_text.inst_iban') }}",
+        "adres":            "{{ states('input_text.inst_adres') }}",
+        "postcode":         "{{ states('input_text.inst_postcode') }}",
+        "stad":             "{{ states('input_text.inst_stad') }}",
+        "email":            "{{ states('input_text.inst_email') }}",
+        "telefoon":         "{{ states('input_text.inst_telefoon') }}",
+        "btw_nummer":       "{{ states('input_text.inst_btw_nummer') }}",
+        "accountant_email": "{{ states('input_text.inst_accountant_email') }}",
+        "logo_url":         "{{ states('input_text.inst_logo_url') }}"
+      }
+
+  n8n_instellingen_laden_webhook:
+    url: !secret n8n_webhook_instellingen_laden
+    method: POST
+    content_type: application/json
+    payload: '{}'
+
+automation:
+
+  - id: automation_instellingen_opslaan
+    alias: "ERP: Bedrijfsinstellingen opslaan"
+    trigger:
+      - platform: state
+        entity_id: input_button.instellingen_opslaan
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_status}
+        data: {value: "⏳ Opslaan..."}
+      - service: rest_command.n8n_instellingen_opslaan_webhook
+    mode: single
+
+  - id: automation_instellingen_laden
+    alias: "ERP: Bedrijfsinstellingen laden"
+    trigger:
+      - platform: state
+        entity_id: input_button.instellingen_laden
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_status}
+        data: {value: "⏳ Laden..."}
+      - service: rest_command.n8n_instellingen_laden_webhook
+    mode: single
+
+input_text:
+
+  inst_bedrijfsnaam:
+    name: "Bedrijfsnaam"
+    max: 100
+    initial: ""
+    icon: mdi:domain
+
+  inst_kvk:
+    name: "KVK-nummer"
+    max: 20
+    initial: ""
+    icon: mdi:card-account-details
+
+  inst_iban:
+    name: "IBAN"
+    max: 50
+    initial: ""
+    icon: mdi:bank
+
+  inst_adres:
+    name: "Adres"
+    max: 150
+    initial: ""
+    icon: mdi:map-marker
+
+  inst_postcode:
+    name: "Postcode"
+    max: 10
+    initial: ""
+    icon: mdi:mailbox
+
+  inst_stad:
+    name: "Stad"
+    max: 100
+    initial: ""
+    icon: mdi:city
+
+  inst_email:
+    name: "E-mailadres"
+    max: 100
+    initial: ""
+    icon: mdi:email
+
+  inst_telefoon:
+    name: "Telefoon"
+    max: 30
+    initial: ""
+    icon: mdi:phone
+
+  inst_btw_nummer:
+    name: "BTW-nummer"
+    max: 30
+    initial: ""
+    icon: mdi:office-building
+
+  inst_accountant_email:
+    name: "E-mail accountant"
+    max: 100
+    initial: ""
+    icon: mdi:email-send
+
+  inst_logo_url:
+    name: "Logo URL"
+    max: 255
+    initial: ""
+    icon: mdi:image
+
+  inst_status:
+    name: "Instellingen Status"
+    max: 100
+    initial: ""
+    icon: mdi:information
+
+input_button:
+
+  instellingen_opslaan:
+    name: "Instellingen Opslaan"
+    icon: mdi:content-save
+
+  instellingen_laden:
+    name: "Instellingen Laden"
+    icon: mdi:download
+
+script:
+
+  erp_instellingen_laden:
+    alias: "ERP: Bedrijfsinstellingen laden in formulier"
+    mode: single
+    fields:
+      bedrijfsnaam:     {description: Bedrijfsnaam}
+      kvk:              {description: KVK-nummer}
+      iban:             {description: IBAN}
+      adres:            {description: Adres}
+      postcode:         {description: Postcode}
+      stad:             {description: Stad}
+      email:            {description: E-mailadres}
+      telefoon:         {description: Telefoon}
+      btw_nummer:       {description: BTW-nummer}
+      accountant_email: {description: Accountant e-mail}
+      logo_url:         {description: Logo URL}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_bedrijfsnaam}
+        data: {value: "{{ bedrijfsnaam | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_kvk}
+        data: {value: "{{ kvk | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_iban}
+        data: {value: "{{ iban | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_adres}
+        data: {value: "{{ adres | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_postcode}
+        data: {value: "{{ postcode | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_stad}
+        data: {value: "{{ stad | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_email}
+        data: {value: "{{ email | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_telefoon}
+        data: {value: "{{ telefoon | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_btw_nummer}
+        data: {value: "{{ btw_nummer | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_accountant_email}
+        data: {value: "{{ accountant_email | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_logo_url}
+        data: {value: "{{ logo_url | default('') }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.inst_status}
+        data: {value: "✅ Instellingen geladen"}

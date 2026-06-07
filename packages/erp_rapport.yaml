@@ -1,0 +1,319 @@
+# =============================================================
+# Natuurwaarnemer ERP — Rapporten Module
+# =============================================================
+
+# ---------------------------------------------------------
+# REST COMMANDS
+# ---------------------------------------------------------
+rest_command:
+
+  n8n_rapport_ophalen_webhook:
+    url: !secret n8n_webhook_rapport_ophalen
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "jaar":    "{{ states('input_select.rapport_jaar') }}",
+        "periode": "{{ states('input_select.rapport_periode') }}"
+      }
+
+  n8n_rapport_pdf_webhook:
+    url: !secret n8n_webhook_rapport_pdf
+    method: POST
+    content_type: application/json
+    payload: >
+      {
+        "jaar":    "{{ states('input_select.rapport_jaar') }}",
+        "periode": "{{ states('input_select.rapport_periode') }}"
+      }
+
+# ---------------------------------------------------------
+# AUTOMATIONS
+# ---------------------------------------------------------
+automation:
+
+  - id: automation_rapport_ophalen
+    alias: "ERP: Rapport ophalen"
+    trigger:
+      - platform: state
+        entity_id: input_button.rapport_ophalen
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_status}
+        data: {value: "⏳ Rapport laden..."}
+      - service: rest_command.n8n_rapport_ophalen_webhook
+    mode: single
+
+  - id: automation_rapport_pdf
+    alias: "ERP: Accountant PDF genereren"
+    trigger:
+      - platform: state
+        entity_id: input_button.rapport_pdf
+    action:
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_status}
+        data: {value: "⏳ PDF genereren en versturen..."}
+      - service: rest_command.n8n_rapport_pdf_webhook
+    mode: single
+
+# ---------------------------------------------------------
+# INPUT SELECT
+# ---------------------------------------------------------
+input_select:
+
+  rapport_jaar:
+    name: "Rapport Jaar"
+    options: ["2026", "2027", "2028", "2029", "2030"]
+    initial: "2026"
+    icon: mdi:calendar
+
+  rapport_periode:
+    name: "Rapport Periode"
+    options:
+      - "Q1 (Jan-Mrt)"
+      - "Q2 (Apr-Jun)"
+      - "Q3 (Jul-Sep)"
+      - "Q4 (Okt-Dec)"
+      - "Heel jaar"
+      - "Januari"
+      - "Februari"
+      - "Maart"
+      - "April"
+      - "Mei"
+      - "Juni"
+      - "Juli"
+      - "Augustus"
+      - "September"
+      - "Oktober"
+      - "November"
+      - "December"
+    initial: "Q1 (Jan-Mrt)"
+    icon: mdi:calendar-month
+
+# ---------------------------------------------------------
+# INPUT TEXT — Rapport resultaatvelden
+# ---------------------------------------------------------
+input_text:
+
+  rapport_status:
+    name: "Rapport Status"
+    max: 100
+    initial: ""
+    icon: mdi:information
+
+  rapport_periode_label:
+    name: "Periode"
+    max: 50
+    initial: ""
+    icon: mdi:calendar-range
+
+  rapport_factuur_count:
+    name: "Aantal Facturen"
+    max: 50
+    initial: ""
+    icon: mdi:file-document-multiple
+
+  rapport_inkoop_count:
+    name: "Aantal Inkoopboekingen"
+    max: 50
+    initial: ""
+    icon: mdi:cart
+
+  rapport_omzet_21:
+    name: "Omzet 21% (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_omzet_9:
+    name: "Omzet 9% (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_omzet_0:
+    name: "Omzet 0% (vrijgesteld)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_omzet_totaal:
+    name: "Totaal Omzet (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_btw_omzet_21:
+    name: "BTW Ontvangen 21%"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_btw_omzet_9:
+    name: "BTW Ontvangen 9%"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_btw_omzet_totaal:
+    name: "Totaal BTW Ontvangen"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_kosten_21:
+    name: "Kosten 21% (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_kosten_9:
+    name: "Kosten 9% (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_kosten_0:
+    name: "Kosten 0% (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_kosten_totaal:
+    name: "Totaal Kosten (excl BTW)"
+    max: 50
+    initial: ""
+    icon: mdi:currency-eur
+
+  rapport_btw_kosten_21:
+    name: "Voorbelasting 21%"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_btw_kosten_9:
+    name: "Voorbelasting 9%"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_btw_kosten_totaal:
+    name: "Totaal Voorbelasting"
+    max: 50
+    initial: ""
+    icon: mdi:percent
+
+  rapport_btw_saldo:
+    name: "BTW Saldo"
+    max: 100
+    initial: ""
+    icon: mdi:bank-transfer
+
+  rapport_netto_resultaat:
+    name: "Netto Resultaat"
+    max: 100
+    initial: ""
+    icon: mdi:chart-line
+
+# ---------------------------------------------------------
+# INPUT BUTTON
+# ---------------------------------------------------------
+input_button:
+
+  rapport_ophalen:
+    name: "Rapport Ophalen"
+    icon: mdi:chart-bar
+
+  rapport_pdf:
+    name: "Accountant PDF"
+    icon: mdi:file-pdf-box
+
+# ---------------------------------------------------------
+# SCRIPT — Gevuld door n8n via HA API
+# ---------------------------------------------------------
+script:
+
+  erp_rapport_laden:
+    alias: "ERP: Rapport data laden"
+    mode: single
+    fields:
+      periode_label:       {description: Periode label}
+      factuur_count:       {description: Aantal facturen}
+      inkoop_count:        {description: Aantal boekingen}
+      omzet_21:            {description: Omzet 21%}
+      omzet_9:             {description: Omzet 9%}
+      omzet_0:             {description: Omzet 0%}
+      omzet_totaal:        {description: Totaal omzet}
+      btw_omzet_21:        {description: BTW ontvangen 21%}
+      btw_omzet_9:         {description: BTW ontvangen 9%}
+      btw_omzet_totaal:    {description: Totaal BTW ontvangen}
+      kosten_21:           {description: Kosten 21%}
+      kosten_9:            {description: Kosten 9%}
+      kosten_0:            {description: Kosten 0%}
+      kosten_totaal:       {description: Totaal kosten}
+      btw_kosten_21:       {description: Voorbelasting 21%}
+      btw_kosten_9:        {description: Voorbelasting 9%}
+      btw_kosten_totaal:   {description: Totaal voorbelasting}
+      btw_saldo:           {description: BTW saldo}
+      netto_resultaat:     {description: Netto resultaat}
+    sequence:
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_periode_label}
+        data: {value: "{{ periode_label }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_factuur_count}
+        data: {value: "{{ factuur_count }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_inkoop_count}
+        data: {value: "{{ inkoop_count }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_omzet_21}
+        data: {value: "{{ omzet_21 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_omzet_9}
+        data: {value: "{{ omzet_9 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_omzet_0}
+        data: {value: "{{ omzet_0 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_omzet_totaal}
+        data: {value: "{{ omzet_totaal }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_omzet_21}
+        data: {value: "{{ btw_omzet_21 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_omzet_9}
+        data: {value: "{{ btw_omzet_9 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_omzet_totaal}
+        data: {value: "{{ btw_omzet_totaal }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_kosten_21}
+        data: {value: "{{ kosten_21 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_kosten_9}
+        data: {value: "{{ kosten_9 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_kosten_0}
+        data: {value: "{{ kosten_0 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_kosten_totaal}
+        data: {value: "{{ kosten_totaal }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_kosten_21}
+        data: {value: "{{ btw_kosten_21 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_kosten_9}
+        data: {value: "{{ btw_kosten_9 }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_kosten_totaal}
+        data: {value: "{{ btw_kosten_totaal }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_btw_saldo}
+        data: {value: "{{ btw_saldo }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_netto_resultaat}
+        data: {value: "{{ netto_resultaat }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.rapport_status}
+        data: {value: "✅ Rapport geladen — {{ periode_label }}"}
