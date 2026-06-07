@@ -3,6 +3,7 @@
 
 # Uitzondering: deze bestanden wel tracken
 !.gitignore
+!README.md
 !secrets.yaml.example
 
 # ERP packages

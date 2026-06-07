@@ -1,6 +1,11 @@
 -- =============================================================
 -- Natuurwaarnemer ERP — Database Schema
 -- MySQL 8.x
+--
+-- Kolomnamen zijn geverifieerd tegen alle INSERT/UPDATE/SELECT
+-- queries uit de n8n workflows. VARCHAR-lengtes en DECIMAL-
+-- precisies zijn gebaseerd op de ingevoerde data en kunnen in
+-- een bestaande installatie iets afwijken.
 -- =============================================================
 
 -- -------------------------------------------------------------
