@@ -1,0 +1,1489 @@
+{
+  "title": "Natuurwaarnemer ERP",
+  "views": [
+    {
+      "title": "🚚 Leveranciers",
+      "path": "leveranciers",
+      "icon": "mdi:truck",
+      "cards": [
+        {
+          "type": "markdown",
+          "content": "## 🚚 Leveranciersbestand\nVoeg een nieuwe leverancier toe, of selecteer een bestaande om te wijzigen of te verwijderen.\n\n> 💡 Na opslaan is de leverancier direct beschikbaar in de **Inkopen** dropdown."
+        },
+        {
+          "type": "entities",
+          "title": "🔧 Bestaande leverancier beheren",
+          "entities": [
+            {
+              "entity": "input_select.inkoop_leverancier",
+              "name": "Selecteer leverancier"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.leverancier_nieuw",
+              "name": "✨ Nieuw",
+              "icon": "mdi:plus-circle",
+              "tap_action": {
+                "action": "toggle"
+              }
+            },
+            {
+              "show_name": true,
+              "show_icon": true,
+              "type": "button",
+              "entity": "input_button.leverancier_laden",
+              "name": "Laden",
+              "icon": "mdi:fire-truck",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            },
+            {
+              "show_name": true,
+              "show_icon": true,
+              "type": "button",
+              "entity": "input_button.leverancier_bijwerken",
+              "name": "Bijwerken",
+              "icon": "mdi:truck-alert-outline",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            },
+            {
+              "type": "button",
+              "entity": "input_button.leverancier_verwijderen",
+              "name": "Verwijderen",
+              "icon": "mdi:truck-remove",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "🏢 Bedrijfsgegevens",
+          "entities": [
+            {
+              "entity": "sensor.leveranciersnummer",
+              "name": "Leveranciersnummer"
+            },
+            {
+              "entity": "input_text.leverancier_naam",
+              "name": "Bedrijfsnaam / Naam"
+            },
+            {
+              "entity": "input_text.leverancier_contactpersoon",
+              "name": "Contactpersoon"
+            },
+            {
+              "entity": "input_text.leverancier_btwnummer",
+              "name": "BTW-nummer"
+            },
+            {
+              "entity": "input_text.leverancier_kvknummer",
+              "name": "KVK-nummer"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📮 Adresgegevens",
+          "entities": [
+            {
+              "entity": "input_text.leverancier_adres",
+              "name": "Adres"
+            },
+            {
+              "entity": "input_text.leverancier_postcode",
+              "name": "Postcode"
+            },
+            {
+              "entity": "input_text.leverancier_stad",
+              "name": "Stad"
+            },
+            {
+              "entity": "input_select.leverancier_land",
+              "name": "Land"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📞 Contactgegevens",
+          "entities": [
+            {
+              "entity": "input_text.leverancier_email",
+              "name": "E-mailadres"
+            },
+            {
+              "entity": "input_text.leverancier_telefoon",
+              "name": "Telefoonnummer"
+            },
+            {
+              "entity": "input_text.leverancier_iban",
+              "name": "IBAN"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Notities & Status",
+          "entities": [
+            {
+              "entity": "input_text.leverancier_notities",
+              "name": "Notities"
+            },
+            {
+              "entity": "input_text.leverancier_status",
+              "name": "Status (terugkoppeling)"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "name": "✅ Nieuwe leverancier opslaan",
+          "icon": "mdi:truck-plus",
+          "tap_action": {
+            "action": "toggle"
+          },
+          "entity": "input_button.leverancier_opslaan",
+          "show_state": false
+        }
+      ]
+    },
+    {
+      "title": "🛒 Inkopen",
+      "path": "inkopen",
+      "icon": "mdi:cart-arrow-down",
+      "cards": [
+        {
+          "type": "markdown",
+          "content": "## 🛒 Inkopen & Kostenregistratie\nRegistreer een inkoopfactuur of uitgave.\n\n| Grootboek | Omschrijving | BTW |\n|---|---|---|\n| **4000** | Inkoopwaarde handelsgoederen | 21% |\n| **4200** | Inkoop diensten / uitbesteding | 21% |\n| **4300** | Inhuur freelancers / ZZP | 21% |\n| **4410** | Kantoorkosten | 21% |\n| **4420** | Reiskosten | 21% / 0% |\n| **4430** | Marketing en reclame | 21% |\n| **4440** | Automatisering en software | 21% |\n| **4450** | Verzekeringen | 0% |\n| **4460** | Telefoon en internet | 21% |\n| **6100** | Bankkosten | 0% |\n| **7000** | Representatiekosten | 21% |\n| **1600** | Crediteuren (schuld aan leverancier) | — |\n| **1520** | Voorbelasting BTW (te vorderen) | — |\n"
+        },
+        {
+          "type": "entities",
+          "title": "🏪 Leverancier & Details",
+          "entities": [
+            {
+              "entity": "input_select.inkoop_leverancier",
+              "name": "Leverancier"
+            },
+            {
+              "entity": "input_text.inkoop_factuurnummer",
+              "name": "Factuurnummer leverancier"
+            },
+            {
+              "entity": "input_text.inkoop_datum",
+              "name": "Datum (JJJJ-MM-DD)"
+            },
+            {
+              "entity": "input_text.inkoop_omschrijving",
+              "name": "Omschrijving"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "💶 Bedrag & Grootboek",
+          "entities": [
+            {
+              "entity": "input_number.inkoop_bedrag",
+              "name": "Bedrag (excl. BTW)"
+            },
+            {
+              "entity": "input_select.inkoop_btw",
+              "name": "BTW %"
+            },
+            {
+              "entity": "input_select.inkoop_grootboek",
+              "name": "Grootboekrekening"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "💶 Totalen",
+          "entities": [
+            {
+              "entity": "input_number.inkoop_bedrag",
+              "name": "Bedrag excl. BTW"
+            },
+            {
+              "entity": "sensor.erp_inkoop_btw_bedrag",
+              "name": "BTW bedrag"
+            },
+            {
+              "entity": "sensor.erp_inkoop_totaal_incl_btw",
+              "name": "Totaal incl. BTW"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📋 Status",
+          "entities": [
+            {
+              "entity": "input_text.inkoop_status",
+              "name": "Status (terugkoppeling)"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "name": "✅ Inkoop opslaan",
+          "icon": "mdi:cart-arrow-down",
+          "tap_action": {
+            "action": "toggle"
+          },
+          "entity": "input_button.inkoop_opslaan",
+          "show_state": false
+        },
+        {
+          "type": "markdown",
+          "content": "---\n## 📂 Bestaande inkoop beheren"
+        },
+        {
+          "type": "entities",
+          "title": "🔍 Inkoop opzoeken",
+          "entities": [
+            {
+              "entity": "input_select.inkoop_leverancier",
+              "name": "Leverancier"
+            },
+            {
+              "entity": "input_select.inkoop_selecteer",
+              "name": "Selecteer inkoop"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📋 Status inkoop beheer",
+          "entities": [
+            {
+              "entity": "input_text.inkoop_beheer_status",
+              "name": "Status"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.inkoop_bijwerken_btn",
+              "name": "💾 Bijwerken",
+              "icon": "mdi:cart-check",
+              "tap_action": {
+                "action": "toggle"
+              }
+            },
+            {
+              "type": "button",
+              "entity": "input_button.inkoop_verwijderen_btn",
+              "name": "🗑️ Verwijderen",
+              "icon": "mdi:cart-remove",
+              "tap_action": {
+                "action": "toggle"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "👥 Klanten",
+      "path": "klanten",
+      "icon": "mdi:account-group",
+      "cards": [
+        {
+          "type": "markdown",
+          "content": "## 👥 Klantenbestand\nVoeg een nieuwe klant toe, of selecteer een bestaande klant om te wijzigen of te verwijderen.\n\n| Grootboek | Omschrijving |\n|---|---|\n| **1300** | Debiteuren — openstaande vorderingen op klanten |\n| **8000** | Omzet diensten (21% BTW) |\n| **8100** | Omzet producten (21% BTW) |\n| **8900** | Omzet vrijgesteld van BTW |\n\n> 💡 **Nieuw:** selecteer een klant → klik **Laden** om te bewerken, of **Verwijderen** om te wissen."
+        },
+        {
+          "type": "entities",
+          "title": "🔧 Bestaande klant beheren",
+          "entities": [
+            {
+              "entity": "input_select.factuur_klant",
+              "name": "Selecteer klant"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "🏢 Bedrijfsgegevens",
+          "entities": [
+            {
+              "entity": "sensor.klantnummer",
+              "name": "Klantnummer"
+            },
+            {
+              "entity": "input_text.klant_naam",
+              "name": "Bedrijfsnaam / Naam"
+            },
+            {
+              "entity": "input_select.klant_type",
+              "name": "Klanttype"
+            },
+            {
+              "entity": "input_text.klant_contactpersoon",
+              "name": "Contactpersoon"
+            },
+            {
+              "entity": "input_text.klant_btwnummer",
+              "name": "BTW-nummer"
+            },
+            {
+              "entity": "input_text.klant_kvknummer",
+              "name": "KVK-nummer"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📞 Contactgegevens",
+          "entities": [
+            {
+              "entity": "input_text.klant_email",
+              "name": "E-mailadres"
+            },
+            {
+              "entity": "input_text.klant_telefoon",
+              "name": "Telefoonnummer"
+            },
+            {
+              "entity": "input_text.klant_iban",
+              "name": "IBAN"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📮 Adresgegevens",
+          "entities": [
+            {
+              "entity": "input_text.klant_adres",
+              "name": "Adres"
+            },
+            {
+              "entity": "input_text.klant_postcode",
+              "name": "Postcode"
+            },
+            {
+              "entity": "input_text.klant_stad",
+              "name": "Stad"
+            },
+            {
+              "entity": "input_select.klant_land",
+              "name": "Land"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Notities & Status",
+          "entities": [
+            {
+              "entity": "input_text.klant_notities",
+              "name": "Notities"
+            },
+            {
+              "entity": "input_text.klant_status",
+              "name": "Status (terugkoppeling)"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "name": "✅ Nieuwe klant opslaan",
+          "icon": "mdi:account-plus",
+          "tap_action": {
+            "action": "toggle"
+          },
+          "entity": "input_button.klant_opslaan",
+          "show_state": false
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.klant_nieuw",
+              "name": "✨ Nieuw",
+              "icon": "mdi:plus-circle",
+              "tap_action": {
+                "action": "toggle"
+              }
+            },
+            {
+              "type": "button",
+              "entity": "input_button.klant_laden",
+              "name": "Laden",
+              "icon": "mdi:account-arrow-down",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            },
+            {
+              "type": "button",
+              "entity": "input_button.klant_bijwerken",
+              "name": "Bijwerken",
+              "icon": "mdi:account-edit",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            },
+            {
+              "type": "button",
+              "entity": "input_button.klant_verwijderen",
+              "name": "Verwijderen",
+              "icon": "mdi:account-remove",
+              "tap_action": {
+                "action": "toggle"
+              },
+              "show_state": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "🧾 Verkopen",
+      "path": "verkopen",
+      "icon": "mdi:file-document-outline",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "👤 Klant & Project",
+          "entities": [
+            {
+              "entity": "input_select.factuur_klant",
+              "name": "Klant"
+            },
+            {
+              "entity": "input_text.factuur_project",
+              "name": "Project / Referentie"
+            },
+            {
+              "entity": "input_select.factuur_grootboek",
+              "name": "Grootboekrekening Omzet"
+            }
+          ]
+        },
+        {
+          "type": "markdown",
+          "content": "## 🧾 Nieuwe Factuur — Verkopen\nVul de gegevens in en klik op **Factuur genereren**.\n\n| Grootboek | Omschrijving | BTW |\n|---|---|---|\n| **8000** | Omzet diensten | 21% |\n| **8010** | Omzet diensten | 9% |\n| **8020** | Omzet vrijgesteld | 0% |\n| **8100** | Omzet producten | 21% |\n| **1300** | Debiteuren (vordering op klant) | — |\n| **1510** | BTW-afdracht hoog (21%) | — |\n| **1511** | BTW-afdracht laag (9%) | — |\n"
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 1",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel1_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel1_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel1_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel1_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "💶 Totalen",
+          "entities": [
+            {
+              "entity": "sensor.erp_factuur_totaal_excl_btw",
+              "name": "Subtotaal (excl. BTW)"
+            },
+            {
+              "entity": "sensor.erp_factuur_totaal_btw",
+              "name": "BTW"
+            },
+            {
+              "entity": "sensor.erp_factuur_totaal_incl_btw",
+              "name": "Totaal (incl. BTW)"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 2",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel2_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel2_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel2_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel2_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 3",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel3_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel3_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel3_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel3_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "name": "✅ Factuur genereren",
+          "icon": "mdi:file-document-plus",
+          "tap_action": {
+            "action": "toggle"
+          },
+          "entity": "input_button.factuur_genereer",
+          "show_state": false
+        },
+        {
+          "type": "entities",
+          "title": "📋 Notities & Status",
+          "entities": [
+            {
+              "entity": "input_text.factuur_notities",
+              "name": "Notities"
+            },
+            {
+              "entity": "input_text.factuur_status",
+              "name": "Status (terugkoppeling)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "📋 Facturen",
+      "path": "facturen",
+      "icon": "mdi:file-document-multiple",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "🔍 Factuur opzoeken",
+          "entities": [
+            {
+              "entity": "input_select.factuur_klant",
+              "name": "Klant"
+            },
+            {
+              "entity": "input_select.factuur_selecteer",
+              "name": "Selecteer factuur"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.factuur_lijst_ophalen",
+              "name": "🔄 Ververs lijst",
+              "icon": "mdi:magnify",
+              "tap_action": {
+                "action": "toggle"
+              }
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Factuurgegevens",
+          "entities": [
+            {
+              "entity": "input_text.factuur_huidig_nummer",
+              "name": "Factuurnummer"
+            },
+            {
+              "entity": "input_text.factuur_project",
+              "name": "Project / Referentie"
+            },
+            {
+              "entity": "input_text.factuur_notities",
+              "name": "Notities / Project"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 1",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel1_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel1_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel1_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel1_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 2",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel2_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel2_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel2_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel2_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📝 Regel 3",
+          "entities": [
+            {
+              "entity": "input_text.factuur_regel3_omschrijving",
+              "name": "Omschrijving"
+            },
+            {
+              "entity": "input_number.factuur_regel3_aantal",
+              "name": "Aantal"
+            },
+            {
+              "entity": "input_number.factuur_regel3_prijs",
+              "name": "Stukprijs (€)"
+            },
+            {
+              "entity": "input_select.factuur_regel3_btw",
+              "name": "BTW %"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "💶 Totalen",
+          "entities": [
+            {
+              "entity": "sensor.erp_factuur_totaal_excl_btw",
+              "name": "Subtotaal excl. BTW"
+            },
+            {
+              "entity": "sensor.erp_factuur_totaal_btw",
+              "name": "BTW"
+            },
+            {
+              "entity": "sensor.erp_factuur_totaal_incl_btw",
+              "name": "Totaal incl. BTW"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📋 Status",
+          "entities": [
+            {
+              "entity": "input_text.factuur_beheer_status",
+              "name": "Status"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.factuur_bijwerken_btn",
+              "name": "💾 Bijwerken",
+              "icon": "mdi:file-document-edit",
+              "tap_action": {
+                "action": "toggle"
+              }
+            },
+            {
+              "type": "button",
+              "entity": "input_button.factuur_verwijderen_btn",
+              "name": "🗑️ Verwijderen",
+              "icon": "mdi:file-document-remove",
+              "tap_action": {
+                "action": "toggle"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "📬 Wachtrij",
+      "path": "wachtrij",
+      "icon": "mdi:email-sync",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "✅ Verificatie voor verzending",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "sensor.wachtrij_geselecteerd_totaal",
+              "name": "Totaal geselecteerd (incl BTW)",
+              "icon": "mdi:cash-check"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_button.wachtrij_ververs",
+              "name": "🔄 Wachtrij vernieuwen"
+            },
+            {
+              "entity": "input_button.wachtrij_versturen",
+              "name": "📨 Verstuur geselecteerde"
+            },
+            {
+              "entity": "input_text.wachtrij_status",
+              "name": "Status"
+            }
+          ]
+        },
+        {
+          "type": "markdown",
+          "content": "## 📬 Factuurwachtrij — Concept facturen\nSelecteer welke factuur verstuurd moet worden en klik **Verstuur geselecteerde**.\n\n> ⚠️ **Stuur facturen één voor één** — selecteer per keer slechts één factuur. Bij meerdere selecties wordt alleen de eerste verstuurd, de rest blijft in de wachtrij."
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_1",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_1",
+                "name": "📄 Factuur 1",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_1",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_1",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_2",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_2",
+                "name": "📄 Factuur 2",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_2",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_2",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_3",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_3",
+                "name": "📄 Factuur 3",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_3",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_3",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_4",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_4",
+                "name": "📄 Factuur 4",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_4",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_4",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_5",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_5",
+                "name": "📄 Factuur 5",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_5",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_5",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_6",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_6",
+                "name": "📄 Factuur 6",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_6",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_6",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_7",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_7",
+                "name": "📄 Factuur 7",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_7",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_7",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_8",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_8",
+                "name": "📄 Factuur 8",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_8",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_8",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_9",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_9",
+                "name": "📄 Factuur 9",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_9",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_9",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "conditional",
+          "conditions": [
+            {
+              "entity": "input_text.wachtrij_slot_10",
+              "state_not": ""
+            }
+          ],
+          "card": {
+            "type": "entities",
+            "entities": [
+              {
+                "entity": "input_text.wachtrij_slot_10",
+                "name": "📄 Factuur 10",
+                "icon": "mdi:file-document-outline"
+              },
+              {
+                "entity": "sensor.wachtrij_bedrag_10",
+                "name": "€ Totaal incl BTW",
+                "icon": "mdi:currency-eur"
+              },
+              {
+                "entity": "input_boolean.wachtrij_verstuur_10",
+                "name": "✉️ Versturen"
+              }
+            ]
+          }
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "button",
+              "entity": "input_button.wachtrij_ververs",
+              "name": "🔄 Ververs wachtrij",
+              "icon": "mdi:refresh",
+              "tap_action": {
+                "action": "toggle"
+              }
+            },
+            {
+              "type": "button",
+              "entity": "input_button.wachtrij_versturen",
+              "name": "📤 Verstuur geselecteerde",
+              "icon": "mdi:send",
+              "tap_action": {
+                "action": "toggle"
+              }
+            }
+          ]
+        }
+      ],
+      "type": "masonry"
+    },
+    {
+      "title": "📈 Rapporten",
+      "path": "rapporten",
+      "icon": "mdi:chart-line",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "Periode Selectie",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_select.rapport_jaar",
+              "name": "Jaar"
+            },
+            {
+              "entity": "input_select.rapport_periode",
+              "name": "Periode"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_button.rapport_ophalen",
+              "name": "📊 Rapport Ophalen"
+            },
+            {
+              "entity": "input_button.rapport_pdf",
+              "name": "📄 Accountant PDF (email)"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.rapport_status",
+              "name": "Status"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "entities",
+              "title": "🧮 BTW Aangifte",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "input_text.rapport_btw_omzet_totaal",
+                  "name": "BTW ontvangen (verschuldigd)"
+                },
+                {
+                  "entity": "input_text.rapport_btw_kosten_totaal",
+                  "name": "Voorbelasting (aftrekbaar)"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_btw_saldo",
+                  "name": "BTW saldo te betalen"
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "title": "💰 Netto Resultaat",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "input_text.rapport_omzet_totaal",
+                  "name": "Omzet excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_kosten_totaal",
+                  "name": "Kosten excl BTW"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_netto_resultaat",
+                  "name": "Netto resultaat"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📊 Winst en Verlies",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_button.kostensoort_ophalen",
+              "name": "📊 W&V Ophalen"
+            },
+            {
+              "entity": "input_button.kostensoort_pdf",
+              "name": "📄 W&V PDF (email)"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.kostensoort_status",
+              "name": "Status"
+            },
+            {
+              "entity": "input_text.kostensoort_periode_label",
+              "name": "Periode"
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "entities",
+              "title": "📈 Omzet (Verkopen)",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "input_text.rapport_periode_label",
+                  "name": "Periode"
+                },
+                {
+                  "entity": "input_text.rapport_factuur_count",
+                  "name": "Aantal facturen"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_omzet_21",
+                  "name": "Omzet 21% excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_omzet_21",
+                  "name": "↳ BTW 21%"
+                },
+                {
+                  "entity": "input_text.rapport_omzet_9",
+                  "name": "Omzet 9% excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_omzet_9",
+                  "name": "↳ BTW 9%"
+                },
+                {
+                  "entity": "input_text.rapport_omzet_0",
+                  "name": "Omzet 0% vrijgesteld"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_omzet_totaal",
+                  "name": "Totaal omzet excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_omzet_totaal",
+                  "name": "Totaal BTW ontvangen"
+                }
+              ]
+            },
+            {
+              "type": "entities",
+              "title": "🛒 Kosten / Inkopen",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "input_text.rapport_periode_label",
+                  "name": "Periode"
+                },
+                {
+                  "entity": "input_text.rapport_inkoop_count",
+                  "name": "Aantal boekingen"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_kosten_21",
+                  "name": "Kosten 21% excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_kosten_21",
+                  "name": "↳ Voorbelasting 21%"
+                },
+                {
+                  "entity": "input_text.rapport_kosten_9",
+                  "name": "Kosten 9% excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_kosten_9",
+                  "name": "↳ Voorbelasting 9%"
+                },
+                {
+                  "entity": "input_text.rapport_kosten_0",
+                  "name": "Kosten 0%"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "entity": "input_text.rapport_kosten_totaal",
+                  "name": "Totaal kosten excl BTW"
+                },
+                {
+                  "entity": "input_text.rapport_btw_kosten_totaal",
+                  "name": "Totaal voorbelasting"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📋 Winst en Verlies overzicht",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_text.kostensoort_slot_1",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_2",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_3",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_4",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_5",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_6",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_7",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_8",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_9",
+              "name": " "
+            },
+            {
+              "entity": "input_text.kostensoort_slot_10",
+              "name": " "
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.kostensoort_totaal_excl",
+              "name": "Totaal Omzet excl BTW"
+            },
+            {
+              "entity": "input_text.kostensoort_totaal_btw",
+              "name": "Totaal Kosten excl BTW"
+            },
+            {
+              "entity": "input_text.kostensoort_totaal_incl",
+              "name": "Netto Resultaat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "⚙️ Instellingen",
+      "path": "instellingen",
+      "icon": "mdi:cog",
+      "cards": [
+        {
+          "type": "entities",
+          "title": "🏢 Bedrijfsgegevens",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_text.inst_bedrijfsnaam",
+              "name": "Bedrijfsnaam"
+            },
+            {
+              "entity": "input_text.inst_kvk",
+              "name": "KVK-nummer"
+            },
+            {
+              "entity": "input_text.inst_iban",
+              "name": "IBAN"
+            },
+            {
+              "entity": "input_text.inst_btw_nummer",
+              "name": "BTW-nummer"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.inst_adres",
+              "name": "Adres"
+            },
+            {
+              "entity": "input_text.inst_postcode",
+              "name": "Postcode"
+            },
+            {
+              "entity": "input_text.inst_stad",
+              "name": "Stad"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "📧 Contact & Logo",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_text.inst_email",
+              "name": "E-mailadres bedrijf"
+            },
+            {
+              "entity": "input_text.inst_telefoon",
+              "name": "Telefoon"
+            },
+            {
+              "entity": "input_text.inst_accountant_email",
+              "name": "E-mail accountant"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.inst_logo_url",
+              "name": "Logo URL"
+            },
+            {
+              "type": "section",
+              "label": "Tip: sla logo op als /homeassistant/www/logo.png"
+            }
+          ]
+        },
+        {
+          "type": "entities",
+          "title": "💾 Opslaan / Laden",
+          "show_header_toggle": false,
+          "entities": [
+            {
+              "entity": "input_button.instellingen_laden",
+              "name": "📥 Huidige instellingen laden"
+            },
+            {
+              "entity": "input_button.instellingen_opslaan",
+              "name": "💾 Instellingen opslaan"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "entity": "input_text.inst_status",
+              "name": "Status"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

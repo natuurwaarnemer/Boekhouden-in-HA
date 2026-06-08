@@ -28,3 +28,8 @@ n8n/*
 !sql/
 sql/*
 !sql/*.sql
+
+# Dashboard exports
+!dashboard/
+dashboard/*
+!dashboard/*.json
