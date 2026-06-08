@@ -190,6 +190,47 @@
         }
       },
       "id": "ce4d7f04-3f74-40c9-8d6e-a16a55671691"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM invoices WHERE notes = CONCAT('WooCommerce order #', {{ ($node['Webhook: WooCommerce Order'].json.body || $node['Webhook: WooCommerce Order'].json).number }}) LIMIT 1",
+        "options": {}
+      },
+      "name": "MySQL: Check dubbel",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 1,
+      "position": [
+        680,
+        420
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "AdVYD86SBj0ZYuto",
+          "name": "MySQL — erp"
+        }
+      },
+      "id": "3d8eaeba-ebbf-457a-bb85-0e8faeaac98d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "name": "IF: Nog niet geboekt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        420
+      ],
+      "id": "453910d9-0306-4159-8cba-3d83da6e776e"
     }
   ],
   "connections": {
@@ -208,7 +249,7 @@
       "main": [
         [
           {
-            "node": "MySQL: Webklanten ophalen",
+            "node": "MySQL: Check dubbel",
             "type": "main",
             "index": 0
           }
@@ -291,6 +332,29 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "MySQL: Check dubbel": {
+      "main": [
+        [
+          {
+            "node": "IF: Nog niet geboekt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Nog niet geboekt?": {
+      "main": [
+        [
+          {
+            "node": "MySQL: Webklanten ophalen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },
