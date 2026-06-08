@@ -1128,6 +1128,7 @@ input_select:
     options:
       - "8000 Omzet NL"
       - "8010 Omzet EU"
+      - "8020 Omzet buiten EU"
     initial: "8000 Omzet NL"
     icon: mdi:book-open-variant
 
