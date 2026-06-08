@@ -14,10 +14,10 @@ packages/*
 !packages/erp_kostensoort.yaml
 !packages/erp_rapport.yaml
 
-# Logo voor factuur PDF
+# Logo voor factuur PDF (gebruiker plaatst eigen logo als www/logo.png)
 !www/
 www/*
-!www/logo_nw.png
+!www/logo.png
 
 # n8n workflow exports (nog toe te voegen)
 !n8n/
