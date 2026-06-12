@@ -95,6 +95,7 @@ ask BEDRIJF_BTW      "BTW-nummer (bijv. NL123456789B01)"
 ask BEDRIJF_KVK      "KVK-nummer"
 ask BEDRIJF_IBAN     "IBAN"
 ask BEDRIJF_BANK     "Bank (bijv. Rabobank)"
+ask LOGO_PAD         "Pad naar logo-bestand (PNG, optioneel — druk Enter om over te slaan)" ""
 
 header "DATABASE"
 ask    DB_NAME     "MySQL databasenaam"    "erp"
@@ -140,6 +141,11 @@ echo -e "    Telefoon        : $BEDRIJF_TEL"
 echo -e "    BTW             : $BEDRIJF_BTW"
 echo -e "    KVK             : $BEDRIJF_KVK"
 echo -e "    IBAN            : $BEDRIJF_IBAN ($BEDRIJF_BANK)"
+if [ -n "$LOGO_PAD" ]; then
+  echo -e "    Logo            : $LOGO_PAD"
+else
+  echo -e "    Logo            : (geen — later in te stellen via Instellingen)"
+fi
 echo ""
 echo -e "  ${BOLD}DATABASE${NC}"
 echo -e "    Database        : $DB_NAME"
@@ -296,6 +302,29 @@ for WF in "${WORKFLOWS[@]}"; do
     "$WF_FILE"
 done
 
+if [ -n "$LOGO_PAD" ] && [ -f "$LOGO_PAD" ]; then
+  info "Logo injecteren in PDF workflows..."
+  LOGO_B64=$(base64 -w 0 "$LOGO_PAD")
+  LOGO_MIME="data:image/png;base64,$LOGO_B64"
+  for WF in rapport_pdf wachtrij_versturen wv_rapport_pdf; do
+    WF_FILE="$WORKFLOW_DIR/${WF}.json"
+    [ -f "$WF_FILE" ] && python3 -c "
+import json, sys
+path = sys.argv[1]
+logo = sys.argv[2]
+with open(path) as f: d = json.load(f)
+for node in d.get('nodes', []):
+    for key in ('jsCode', 'functionCode'):
+        if key in node.get('parameters', {}):
+            node['parameters'][key] = node['parameters'][key].replace(
+                'const LOGO_EMBEDDED=\"\"', 'const LOGO_EMBEDDED=\"' + logo + '\"', 1)
+with open(path, 'w') as f: json.dump(d, f, ensure_ascii=False)
+" "$WF_FILE" "$LOGO_MIME" && ok "Logo ingebakken in ${WF}.json"
+  done
+else
+  info "Geen logo opgegeven — logo_url via Instellingen tab in HA instellen na installatie"
+fi
+
 info "Workflows importeren via n8n CLI..."
 for WF_FILE in "$WORKFLOW_DIR"/*.json; do
   WF_NAME=$(basename "$WF_FILE" .json)
@@ -368,6 +397,13 @@ echo -e "  3. Kopieer de ERP packages naar HA:"
 echo -e "     ${BLUE}https://github.com/natuurwaarnemer/Boekhouden-in-HA/tree/master/packages${NC}"
 echo ""
 echo -e "  4. HA herstarten"
+echo ""
+if [ -z "$LOGO_PAD" ]; then
+  echo -e "  5. ${YELLOW}Logo instellen:${NC} open het ERP dashboard in HA → tab ⚙️ Instellingen"
+  echo -e "     Vul bij 'Logo URL' de volledige URL in, bijv:"
+  echo -e "     ${BLUE}http://$HA_IP:8123/local/logo.png${NC}"
+  echo -e "     Zet het bestand op je HA server in /config/www/logo.png"
+fi
 echo ""
 echo -e "  ${BOLD}Inloggegevens:${NC}"
 echo -e "    n8n     : http://$N8N_IP:$N8N_PORT  →  $N8N_USER / (jouw wachtwoord)"

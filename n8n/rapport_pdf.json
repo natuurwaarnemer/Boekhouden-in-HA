@@ -1,1 +1,881 @@
-{"updatedAt":"2026-06-07T11:38:46.644Z","createdAt":"2026-06-07T07:45:14.639Z","id":"i5CUhIajAGxyP3vG","name":"Rapport PDF","description":null,"active":true,"isArchived":false,"nodes":[{"id":"1c2a6a45","name":"Webhook: rapport-pdf","type":"n8n-nodes-base.webhook","typeVersion":1.1,"position":[260,300],"parameters":{"httpMethod":"POST","path":"rapport-pdf","responseMode":"responseNode","options":{}},"webhookId":"rapport-pdf"},{"id":"bf7e4327","name":"Code: Parse Periode","type":"n8n-nodes-base.code","typeVersion":2,"position":[480,300],"parameters":{"jsCode":"const input = $json.body || $json;\nconst jaar = parseInt(input.jaar) || 2025;\nconst periode = input.periode || 'Q1 (Jan-Mrt)';\nconst maanden = {\n  'Januari':1,'Februari':2,'Maart':3,'April':4,'Mei':5,'Juni':6,\n  'Juli':7,'Augustus':8,'September':9,'Oktober':10,'November':11,'December':12\n};\nlet kwartaal_nr = 0, maand_nr = 0, periode_label = '';\nif      (periode.startsWith('Q1')) { kwartaal_nr=1; periode_label=`Q1 Jan-Mrt ${jaar}`; }\nelse if (periode.startsWith('Q2')) { kwartaal_nr=2; periode_label=`Q2 Apr-Jun ${jaar}`; }\nelse if (periode.startsWith('Q3')) { kwartaal_nr=3; periode_label=`Q3 Jul-Sep ${jaar}`; }\nelse if (periode.startsWith('Q4')) { kwartaal_nr=4; periode_label=`Q4 Okt-Dec ${jaar}`; }\nelse if (periode === 'Heel jaar')   { periode_label=`Heel jaar ${jaar}`; }\nelse if (maanden[periode])         { maand_nr=maanden[periode]; periode_label=`${periode} ${jaar}`; }\nelse                               { periode_label=`${periode} ${jaar}`; }\nreturn [{ json: { jaar, kwartaal_nr, maand_nr, periode_label } }];\n"}},{"id":"bbe7fab8","name":"MySQL: Omzet","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[700,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_9,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=0  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_0,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_9,\n  COUNT(DISTINCT i.invoice_number) AS factuur_count\nFROM invoice_items ii\nJOIN invoices i ON i.invoice_number=ii.invoice_number\nWHERE i.status='verzonden'\n  AND YEAR(i.date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(i.date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(i.date)={{ $json.maand_nr }})\n"}},{"id":"e8dbeb5a","name":"Code: Merge Omzet","type":"n8n-nodes-base.code","typeVersion":2,"position":[920,300],"parameters":{"jsCode":"const parse = $node[\"Code: Parse Periode\"].json;\nreturn [{ json: { ...parse, ...$json } }];\n"}},{"id":"5f413bab","name":"MySQL: Kosten","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1140,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN amount ELSE 0 END),0) AS kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN amount ELSE 0 END),0) AS kosten_9,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=0  THEN amount ELSE 0 END),0) AS kosten_0,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN btw_amount ELSE 0 END),0) AS btw_kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN btw_amount ELSE 0 END),0) AS btw_kosten_9,\n  COUNT(*) AS inkoop_count\nFROM expenses\nWHERE YEAR(date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(date)={{ $json.maand_nr }})\n"}},{"id":"8872501e","name":"Code: Bereken","type":"n8n-nodes-base.code","typeVersion":2,"position":[1360,300],"parameters":{"jsCode":"\nfunction fmt(val) {\n  const v = parseFloat(val||0);\n  return '€ ' + v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});\n}\nconst d = $json;\nconst o21=parseFloat(d.omzet_21||0), o9=parseFloat(d.omzet_9||0), o0=parseFloat(d.omzet_0||0);\nconst oTot=o21+o9+o0;\nconst bo21=parseFloat(d.btw_omzet_21||0), bo9=parseFloat(d.btw_omzet_9||0);\nconst boTot=bo21+bo9;\nconst k21=parseFloat(d.kosten_21||0), k9=parseFloat(d.kosten_9||0), k0=parseFloat(d.kosten_0||0);\nconst kTot=k21+k9+k0;\nconst bk21=parseFloat(d.btw_kosten_21||0), bk9=parseFloat(d.btw_kosten_9||0);\nconst bkTot=bk21+bk9;\nconst btwSaldo=boTot-bkTot;\nconst netto=oTot-kTot;\nreturn [{json:{\n  periode_label: d.periode_label,\n  factuur_count: d.factuur_count+' facturen',\n  inkoop_count:  d.inkoop_count+' boekingen',\n  omzet_21: fmt(o21), omzet_9: fmt(o9), omzet_0: fmt(o0),\n  omzet_totaal: fmt(oTot),\n  btw_omzet_21: fmt(bo21), btw_omzet_9: fmt(bo9), btw_omzet_totaal: fmt(boTot),\n  kosten_21: fmt(k21), kosten_9: fmt(k9), kosten_0: fmt(k0),\n  kosten_totaal: fmt(kTot),\n  btw_kosten_21: fmt(bk21), btw_kosten_9: fmt(bk9), btw_kosten_totaal: fmt(bkTot),\n  btw_saldo: btwSaldo>=0 ? fmt(btwSaldo)+' te betalen' : fmt(Math.abs(btwSaldo))+' terug te ontvangen',\n  netto_resultaat: netto>=0 ? fmt(netto)+' winst' : fmt(Math.abs(netto))+' verlies',\n  _o21:o21,_o9:o9,_o0:o0,_oTot:oTot,\n  _bo21:bo21,_bo9:bo9,_boTot:boTot,\n  _k21:k21,_k9:k9,_k0:k0,_kTot:kTot,\n  _bk21:bk21,_bk9:bk9,_bkTot:bkTot,\n  _btwSaldo:btwSaldo,_netto:netto\n}}];\n"}},{"id":"99c92a71","name":"Code: HTML Rapport","type":"n8n-nodes-base.code","typeVersion":2,"position":[1580,300],"parameters":{"jsCode":"const d = $node[\"Code: Bereken\"].json;\nconst s = $json; // instellingen uit DB\nconst bedrijfsnaam = s.bedrijfsnaam || 'Mijn Bedrijf';\nconst kvk = s.kvk || '';\nconst iban = s.iban || '';\nconst email_bedrijf = s.email || '';\nconst accountant_email = s.accountant_email || 'info@example.nl';\nconst logo_url = s.logo_url || '';\n\n\nfunction eur(n){const v=parseFloat(n||0);return '&euro;&nbsp;'+v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}\nconst today=new Date();\nconst datum=today.getDate()+'-'+(today.getMonth()+1)+'-'+today.getFullYear();\nconst html=`<!DOCTYPE html>\n<html lang=\"nl\"><head><meta charset=\"UTF-8\">\n<style>\nbody{font-family:Arial,sans-serif;font-size:10pt;color:#222;margin:0;padding:20px 30px;}\n.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #2c7a2c;padding-bottom:12px;}\n.logo{font-size:16pt;font-weight:bold;color:#2c7a2c;}\n.meta{text-align:right;font-size:9pt;color:#555;}\nh1{font-size:13pt;color:#2c7a2c;margin:0 0 4px;}\nh2{font-size:10pt;color:#2c7a2c;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px;}\ntable{width:100%;border-collapse:collapse;margin-bottom:10px;}\nth{background:#2c7a2c;color:#fff;padding:5px 8px;text-align:left;font-size:9pt;}\ntd{padding:4px 8px;border-bottom:1px solid #eee;font-size:9pt;}\n.r{text-align:right;} .b{font-weight:bold;}\n.tr{background:#f0f7f0;font-weight:bold;}\n.kader{background:#e8f5e9;border:1px solid #2c7a2c;padding:8px 14px;margin:10px 0;border-radius:4px;}\n.kr{display:flex;justify-content:space-between;padding:3px 0;}\n.neg{color:#c00;}\n.footer{position:fixed;bottom:18px;left:30px;right:30px;font-size:7pt;color:#999;border-top:1px solid #ddd;padding-top:5px;text-align:center;}\n</style></head><body>\n<div class=\"hdr\">\n  <div><img src=\"${logo_url}\" style=\"max-height:70px;display:block;\">\n    <div style=\"font-size:9pt;color:#555;margin-top:4px;\">KVK: ${kvk} &nbsp;|&nbsp; IBAN: ${iban}</div></div>\n  <div class=\"meta\"><h1>Financieel Rapport</h1><div>${d.periode_label}</div><div>Gegenereerd: ${datum}</div></div>\n</div>\n<h2>Omzet (Verkopen)</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">BTW ontvangen</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._o21)}</td><td class=\"r\">${eur(d._bo21)}</td><td class=\"r\">${eur(d._o21+d._bo21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._o9)}</td><td class=\"r\">${eur(d._bo9)}</td><td class=\"r\">${eur(d._o9+d._bo9)}</td></tr>\n<tr><td>0% vrijgesteld</td><td class=\"r\">${eur(d._o0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._o0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._oTot)}</td><td class=\"r\">${eur(d._boTot)}</td><td class=\"r\">${eur(d._oTot+d._boTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.factuur_count}</div>\n<h2>Kosten / Inkopen</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">Voorbelasting</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._k21)}</td><td class=\"r\">${eur(d._bk21)}</td><td class=\"r\">${eur(d._k21+d._bk21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._k9)}</td><td class=\"r\">${eur(d._bk9)}</td><td class=\"r\">${eur(d._k9+d._bk9)}</td></tr>\n<tr><td>0% geen BTW</td><td class=\"r\">${eur(d._k0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._k0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._kTot)}</td><td class=\"r\">${eur(d._bkTot)}</td><td class=\"r\">${eur(d._kTot+d._bkTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.inkoop_count}</div>\n<h2>BTW Aangifte</h2>\n<table>\n<tr><th>Omschrijving</th><th class=\"r\">Bedrag</th></tr>\n<tr><td>BTW ontvangen (verschuldigd)</td><td class=\"r\">${eur(d._boTot)}</td></tr>\n<tr><td>BTW voorbelasting (aftrekbaar)</td><td class=\"r\">&minus;&nbsp;${eur(d._bkTot)}</td></tr>\n<tr class=\"tr\"><td class=\"b\">BTW afdracht Belastingdienst</td><td class=\"r b ${d._btwSaldo<0?'neg':''}\">${eur(d._btwSaldo)}</td></tr>\n</table>\n<h2>Netto Resultaat</h2>\n<div class=\"kader\">\n  <div class=\"kr\"><span style=\"color:#555;\">Omzet excl BTW</span><span class=\"b\">${eur(d._oTot)}</span></div>\n  <div class=\"kr\"><span style=\"color:#555;\">Kosten excl BTW</span><span class=\"b\" style=\"color:#c00;\">&minus;&nbsp;${eur(d._kTot)}</span></div>\n  <div style=\"border-top:1px solid #aaa;margin:4px 0;\"></div>\n  <div class=\"kr\"><span class=\"b\">Netto resultaat</span><span class=\"b ${d._netto<0?'neg':''}\" style=\"font-size:11pt;\">${eur(d._netto)}</span></div>\n</div>\n<div class=\"footer\">${bedrijfsnaam} &nbsp;|&nbsp; KVK ${kvk} &nbsp;|&nbsp; ${email_bedrijf} &nbsp;|&nbsp; ${d.periode_label} &nbsp;|&nbsp; ${datum}</div>\n</body></html>`;\nconst binary=await this.helpers.prepareBinaryData(Buffer.from(html,'utf8'),'index.html','text/html');\nconst subject='Financieel Rapport — '+d.periode_label;\nconst text = 'Geachte accountant,\\n\\nBijgaand stuur ik u de gevraagde gegevens voor de periode ' + d.periode_label + '.\\n\\n' +\n  'Omzet excl BTW:    ' + d.omzet_totaal + '\\n' +\n  'BTW ontvangen:     ' + d.btw_omzet_totaal + '\\n' +\n  'Kosten excl BTW:   ' + d.kosten_totaal + '\\n' +\n  'Voorbelasting:     ' + d.btw_kosten_totaal + '\\n' +\n  'BTW afdracht:      ' + d.btw_saldo + '\\n' +\n  'Netto resultaat:   ' + d.netto_resultaat + '\\n\\n' +\n  'Met vriendelijke groet,\\n' + bedrijfsnaam + '\\n\\n' +\n  '(Dit is een geautomatiseerd systeem)';\nreturn [{ json: {...$json, email_subject: subject, email_text: text}, binary: { html_file: binary } }];\n"}},{"id":"0c21a61d","name":"HTTP: Gotenberg PDF","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1800,300],"parameters":{"method":"POST","url":"http://localhost:3000/forms/chromium/convert/html","sendBody":true,"contentType":"multipart-form-data","bodyParameters":{"parameters":[{"parameterType":"formBinaryData","name":"files","inputDataFieldName":"html_file"}]},"options":{"response":{"response":{"responseFormat":"file","outputPropertyName":"pdf_data"}}}}},{"id":"e3a5bc01","name":"Send Email: Rapport","type":"n8n-nodes-base.emailSend","typeVersion":2.1,"position":[2020,300],"credentials":{"smtp":{"id":"C2oVdFYaAOQ33IMB","name":"SMTP account"}},"parameters":{"fromEmail":"info@natuurwaarnemer.nl","toEmail":"={{ $node[\"Code: HTML Rapport\"].json.accountant_email + \",\" + $node[\"Code: HTML Rapport\"].json.email }}","subject":"={{ $node[\"Code: HTML Rapport\"].json.email_subject }}","text":"={{ $node[\"Code: HTML Rapport\"].json.email_text }}","options":{"attachments":"pdf_data","appendAttribution":false},"emailFormat":"text"}},{"id":"9baa3453","name":"HTTP: HA Status PDF","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2240,300],"parameters":{"method":"POST","url":"http://192.168.2.17:8123/api/services/input_text/set_value","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2MzAxZDY5YTI2NjY0ZjkyOWM0YTY0YzEyMzgxYjIxNSIsImlhdCI6MTc4MDUxMDUxOCwiZXhwIjoyMDk1ODcwNTE4fQ.uUPOrFdyOZHj-zvP96VT25gM7PIW6W1d63d6qnkAcHw"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"contentType":"raw","body":"{\"entity_id\": \"input_text.rapport_status\", \"value\": \"\\u2705 PDF verstuurd naar info@natuurwaarnemer.nl\"}"}},{"id":"7e82e337","name":"Respond: OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[2460,300],"parameters":{"respondWith":"json","responseBody":"{\"status\":\"ok\"}"}},{"id":"41fd19d3","name":"Code: Merge Kosten","type":"n8n-nodes-base.code","typeVersion":2,"position":[1250,300],"parameters":{"jsCode":"const prev = $node[\"Code: Merge Omzet\"].json;\nreturn [{ json: { ...prev, ...$json } }];\n"}},{"id":"c8383f5e","name":"MySQL: Instellingen","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1470,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(MAX(CASE WHEN `key`='bedrijfsnaam'     THEN value END),'Mijn Bedrijf') AS bedrijfsnaam,\n  COALESCE(MAX(CASE WHEN `key`='kvk'              THEN value END),'') AS kvk,\n  COALESCE(MAX(CASE WHEN `key`='iban'             THEN value END),'') AS iban,\n  COALESCE(MAX(CASE WHEN `key`='adres'            THEN value END),'') AS adres,\n  COALESCE(MAX(CASE WHEN `key`='postcode'         THEN value END),'') AS postcode,\n  COALESCE(MAX(CASE WHEN `key`='stad'             THEN value END),'') AS stad,\n  COALESCE(MAX(CASE WHEN `key`='email'            THEN value END),'') AS email,\n  COALESCE(MAX(CASE WHEN `key`='telefoon'         THEN value END),'') AS telefoon,\n  COALESCE(MAX(CASE WHEN `key`='btw_nummer'       THEN value END),'') AS btw_nummer,\n  COALESCE(MAX(CASE WHEN `key`='accountant_email' THEN value END),'') AS accountant_email,\n  COALESCE(MAX(CASE WHEN `key`='logo_url'         THEN value END),'') AS logo_url\nFROM settings\n"}},{"id":"be2c1085","name":"Code: PDF bestandsnaam","type":"n8n-nodes-base.code","typeVersion":2,"position":[1910,300],"parameters":{"jsCode":"const item = $input.first();\nconst label = $node['Code: Bereken'].json.periode_label || 'rapport';\nconst filename = 'Rapport-' + label.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf';\nif (item.binary && item.binary.pdf_data) {\n  item.binary.pdf_data.fileName = filename;\n}\nreturn [item];\n"}}],"connections":{"Webhook: rapport-pdf":{"main":[[{"node":"Code: Parse Periode","type":"main","index":0}]]},"Code: Parse Periode":{"main":[[{"node":"MySQL: Omzet","type":"main","index":0}]]},"MySQL: Omzet":{"main":[[{"node":"Code: Merge Omzet","type":"main","index":0}]]},"Code: Merge Omzet":{"main":[[{"node":"MySQL: Kosten","type":"main","index":0}]]},"MySQL: Kosten":{"main":[[{"node":"Code: Merge Kosten","type":"main","index":0}]]},"Code: Bereken":{"main":[[{"node":"MySQL: Instellingen","type":"main","index":0}]]},"Code: HTML Rapport":{"main":[[{"node":"HTTP: Gotenberg PDF","type":"main","index":0}]]},"HTTP: Gotenberg PDF":{"main":[[{"node":"Code: PDF bestandsnaam","type":"main","index":0}]]},"Send Email: Rapport":{"main":[[{"node":"HTTP: HA Status PDF","type":"main","index":0}]]},"HTTP: HA Status PDF":{"main":[[{"node":"Respond: OK","type":"main","index":0}]]},"Code: Merge Kosten":{"main":[[{"node":"Code: Bereken","type":"main","index":0}]]},"MySQL: Instellingen":{"main":[[{"node":"Code: HTML Rapport","type":"main","index":0}]]},"Code: PDF bestandsnaam":{"main":[[{"node":"Send Email: Rapport","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","availableInMCP":false},"staticData":null,"meta":null,"pinData":null,"versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","activeVersionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","versionCounter":76,"triggerCount":1,"shared":[{"updatedAt":"2026-06-07T07:45:14.648Z","createdAt":"2026-06-07T07:45:14.648Z","role":"workflow:owner","workflowId":"i5CUhIajAGxyP3vG","projectId":"m5RFSl9CcHUdb8CB","project":{"updatedAt":"2026-04-21T19:10:08.086Z","createdAt":"2026-04-21T18:59:53.063Z","id":"m5RFSl9CcHUdb8CB","name":"Ruud Hogenberg <info@natuurwaarnemer.nl>","type":"personal","icon":null,"description":null,"creatorId":"4e4dfe16-eb75-4c88-ac33-b7c362667bc3"}}],"tags":[],"activeVersion":{"updatedAt":"2026-06-07T11:38:46.649Z","createdAt":"2026-06-07T11:38:46.649Z","versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","workflowId":"i5CUhIajAGxyP3vG","nodes":[{"id":"1c2a6a45","name":"Webhook: rapport-pdf","type":"n8n-nodes-base.webhook","typeVersion":1.1,"position":[260,300],"parameters":{"httpMethod":"POST","path":"rapport-pdf","responseMode":"responseNode","options":{}},"webhookId":"rapport-pdf"},{"id":"bf7e4327","name":"Code: Parse Periode","type":"n8n-nodes-base.code","typeVersion":2,"position":[480,300],"parameters":{"jsCode":"const input = $json.body || $json;\nconst jaar = parseInt(input.jaar) || 2025;\nconst periode = input.periode || 'Q1 (Jan-Mrt)';\nconst maanden = {\n  'Januari':1,'Februari':2,'Maart':3,'April':4,'Mei':5,'Juni':6,\n  'Juli':7,'Augustus':8,'September':9,'Oktober':10,'November':11,'December':12\n};\nlet kwartaal_nr = 0, maand_nr = 0, periode_label = '';\nif      (periode.startsWith('Q1')) { kwartaal_nr=1; periode_label=`Q1 Jan-Mrt ${jaar}`; }\nelse if (periode.startsWith('Q2')) { kwartaal_nr=2; periode_label=`Q2 Apr-Jun ${jaar}`; }\nelse if (periode.startsWith('Q3')) { kwartaal_nr=3; periode_label=`Q3 Jul-Sep ${jaar}`; }\nelse if (periode.startsWith('Q4')) { kwartaal_nr=4; periode_label=`Q4 Okt-Dec ${jaar}`; }\nelse if (periode === 'Heel jaar')   { periode_label=`Heel jaar ${jaar}`; }\nelse if (maanden[periode])         { maand_nr=maanden[periode]; periode_label=`${periode} ${jaar}`; }\nelse                               { periode_label=`${periode} ${jaar}`; }\nreturn [{ json: { jaar, kwartaal_nr, maand_nr, periode_label } }];\n"}},{"id":"bbe7fab8","name":"MySQL: Omzet","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[700,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_9,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=0  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_0,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_9,\n  COUNT(DISTINCT i.invoice_number) AS factuur_count\nFROM invoice_items ii\nJOIN invoices i ON i.invoice_number=ii.invoice_number\nWHERE i.status='verzonden'\n  AND YEAR(i.date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(i.date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(i.date)={{ $json.maand_nr }})\n"}},{"id":"e8dbeb5a","name":"Code: Merge Omzet","type":"n8n-nodes-base.code","typeVersion":2,"position":[920,300],"parameters":{"jsCode":"const parse = $node[\"Code: Parse Periode\"].json;\nreturn [{ json: { ...parse, ...$json } }];\n"}},{"id":"5f413bab","name":"MySQL: Kosten","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1140,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN amount ELSE 0 END),0) AS kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN amount ELSE 0 END),0) AS kosten_9,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=0  THEN amount ELSE 0 END),0) AS kosten_0,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN btw_amount ELSE 0 END),0) AS btw_kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN btw_amount ELSE 0 END),0) AS btw_kosten_9,\n  COUNT(*) AS inkoop_count\nFROM expenses\nWHERE YEAR(date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(date)={{ $json.maand_nr }})\n"}},{"id":"8872501e","name":"Code: Bereken","type":"n8n-nodes-base.code","typeVersion":2,"position":[1360,300],"parameters":{"jsCode":"\nfunction fmt(val) {\n  const v = parseFloat(val||0);\n  return '€ ' + v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});\n}\nconst d = $json;\nconst o21=parseFloat(d.omzet_21||0), o9=parseFloat(d.omzet_9||0), o0=parseFloat(d.omzet_0||0);\nconst oTot=o21+o9+o0;\nconst bo21=parseFloat(d.btw_omzet_21||0), bo9=parseFloat(d.btw_omzet_9||0);\nconst boTot=bo21+bo9;\nconst k21=parseFloat(d.kosten_21||0), k9=parseFloat(d.kosten_9||0), k0=parseFloat(d.kosten_0||0);\nconst kTot=k21+k9+k0;\nconst bk21=parseFloat(d.btw_kosten_21||0), bk9=parseFloat(d.btw_kosten_9||0);\nconst bkTot=bk21+bk9;\nconst btwSaldo=boTot-bkTot;\nconst netto=oTot-kTot;\nreturn [{json:{\n  periode_label: d.periode_label,\n  factuur_count: d.factuur_count+' facturen',\n  inkoop_count:  d.inkoop_count+' boekingen',\n  omzet_21: fmt(o21), omzet_9: fmt(o9), omzet_0: fmt(o0),\n  omzet_totaal: fmt(oTot),\n  btw_omzet_21: fmt(bo21), btw_omzet_9: fmt(bo9), btw_omzet_totaal: fmt(boTot),\n  kosten_21: fmt(k21), kosten_9: fmt(k9), kosten_0: fmt(k0),\n  kosten_totaal: fmt(kTot),\n  btw_kosten_21: fmt(bk21), btw_kosten_9: fmt(bk9), btw_kosten_totaal: fmt(bkTot),\n  btw_saldo: btwSaldo>=0 ? fmt(btwSaldo)+' te betalen' : fmt(Math.abs(btwSaldo))+' terug te ontvangen',\n  netto_resultaat: netto>=0 ? fmt(netto)+' winst' : fmt(Math.abs(netto))+' verlies',\n  _o21:o21,_o9:o9,_o0:o0,_oTot:oTot,\n  _bo21:bo21,_bo9:bo9,_boTot:boTot,\n  _k21:k21,_k9:k9,_k0:k0,_kTot:kTot,\n  _bk21:bk21,_bk9:bk9,_bkTot:bkTot,\n  _btwSaldo:btwSaldo,_netto:netto\n}}];\n"}},{"id":"99c92a71","name":"Code: HTML Rapport","type":"n8n-nodes-base.code","typeVersion":2,"position":[1580,300],"parameters":{"jsCode":"const d = $node[\"Code: Bereken\"].json;\nconst s = $json; // instellingen uit DB\nconst bedrijfsnaam = s.bedrijfsnaam || 'Mijn Bedrijf';\nconst kvk = s.kvk || '';\nconst iban = s.iban || '';\nconst email_bedrijf = s.email || '';\nconst accountant_email = s.accountant_email || 'info@example.nl';\nconst logo_url = s.logo_url || '';\n\n\nfunction eur(n){const v=parseFloat(n||0);return '&euro;&nbsp;'+v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}\nconst today=new Date();\nconst datum=today.getDate()+'-'+(today.getMonth()+1)+'-'+today.getFullYear();\nconst html=`<!DOCTYPE html>\n<html lang=\"nl\"><head><meta charset=\"UTF-8\">\n<style>\nbody{font-family:Arial,sans-serif;font-size:10pt;color:#222;margin:0;padding:20px 30px;}\n.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #2c7a2c;padding-bottom:12px;}\n.logo{font-size:16pt;font-weight:bold;color:#2c7a2c;}\n.meta{text-align:right;font-size:9pt;color:#555;}\nh1{font-size:13pt;color:#2c7a2c;margin:0 0 4px;}\nh2{font-size:10pt;color:#2c7a2c;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px;}\ntable{width:100%;border-collapse:collapse;margin-bottom:10px;}\nth{background:#2c7a2c;color:#fff;padding:5px 8px;text-align:left;font-size:9pt;}\ntd{padding:4px 8px;border-bottom:1px solid #eee;font-size:9pt;}\n.r{text-align:right;} .b{font-weight:bold;}\n.tr{background:#f0f7f0;font-weight:bold;}\n.kader{background:#e8f5e9;border:1px solid #2c7a2c;padding:8px 14px;margin:10px 0;border-radius:4px;}\n.kr{display:flex;justify-content:space-between;padding:3px 0;}\n.neg{color:#c00;}\n.footer{position:fixed;bottom:18px;left:30px;right:30px;font-size:7pt;color:#999;border-top:1px solid #ddd;padding-top:5px;text-align:center;}\n</style></head><body>\n<div class=\"hdr\">\n  <div><img src=\"${logo_url}\" style=\"max-height:70px;display:block;\">\n    <div style=\"font-size:9pt;color:#555;margin-top:4px;\">KVK: ${kvk} &nbsp;|&nbsp; IBAN: ${iban}</div></div>\n  <div class=\"meta\"><h1>Financieel Rapport</h1><div>${d.periode_label}</div><div>Gegenereerd: ${datum}</div></div>\n</div>\n<h2>Omzet (Verkopen)</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">BTW ontvangen</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._o21)}</td><td class=\"r\">${eur(d._bo21)}</td><td class=\"r\">${eur(d._o21+d._bo21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._o9)}</td><td class=\"r\">${eur(d._bo9)}</td><td class=\"r\">${eur(d._o9+d._bo9)}</td></tr>\n<tr><td>0% vrijgesteld</td><td class=\"r\">${eur(d._o0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._o0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._oTot)}</td><td class=\"r\">${eur(d._boTot)}</td><td class=\"r\">${eur(d._oTot+d._boTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.factuur_count}</div>\n<h2>Kosten / Inkopen</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">Voorbelasting</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._k21)}</td><td class=\"r\">${eur(d._bk21)}</td><td class=\"r\">${eur(d._k21+d._bk21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._k9)}</td><td class=\"r\">${eur(d._bk9)}</td><td class=\"r\">${eur(d._k9+d._bk9)}</td></tr>\n<tr><td>0% geen BTW</td><td class=\"r\">${eur(d._k0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._k0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._kTot)}</td><td class=\"r\">${eur(d._bkTot)}</td><td class=\"r\">${eur(d._kTot+d._bkTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.inkoop_count}</div>\n<h2>BTW Aangifte</h2>\n<table>\n<tr><th>Omschrijving</th><th class=\"r\">Bedrag</th></tr>\n<tr><td>BTW ontvangen (verschuldigd)</td><td class=\"r\">${eur(d._boTot)}</td></tr>\n<tr><td>BTW voorbelasting (aftrekbaar)</td><td class=\"r\">&minus;&nbsp;${eur(d._bkTot)}</td></tr>\n<tr class=\"tr\"><td class=\"b\">BTW afdracht Belastingdienst</td><td class=\"r b ${d._btwSaldo<0?'neg':''}\">${eur(d._btwSaldo)}</td></tr>\n</table>\n<h2>Netto Resultaat</h2>\n<div class=\"kader\">\n  <div class=\"kr\"><span style=\"color:#555;\">Omzet excl BTW</span><span class=\"b\">${eur(d._oTot)}</span></div>\n  <div class=\"kr\"><span style=\"color:#555;\">Kosten excl BTW</span><span class=\"b\" style=\"color:#c00;\">&minus;&nbsp;${eur(d._kTot)}</span></div>\n  <div style=\"border-top:1px solid #aaa;margin:4px 0;\"></div>\n  <div class=\"kr\"><span class=\"b\">Netto resultaat</span><span class=\"b ${d._netto<0?'neg':''}\" style=\"font-size:11pt;\">${eur(d._netto)}</span></div>\n</div>\n<div class=\"footer\">${bedrijfsnaam} &nbsp;|&nbsp; KVK ${kvk} &nbsp;|&nbsp; ${email_bedrijf} &nbsp;|&nbsp; ${d.periode_label} &nbsp;|&nbsp; ${datum}</div>\n</body></html>`;\nconst binary=await this.helpers.prepareBinaryData(Buffer.from(html,'utf8'),'index.html','text/html');\nconst subject='Financieel Rapport — '+d.periode_label;\nconst text = 'Geachte accountant,\\n\\nBijgaand stuur ik u de gevraagde gegevens voor de periode ' + d.periode_label + '.\\n\\n' +\n  'Omzet excl BTW:    ' + d.omzet_totaal + '\\n' +\n  'BTW ontvangen:     ' + d.btw_omzet_totaal + '\\n' +\n  'Kosten excl BTW:   ' + d.kosten_totaal + '\\n' +\n  'Voorbelasting:     ' + d.btw_kosten_totaal + '\\n' +\n  'BTW afdracht:      ' + d.btw_saldo + '\\n' +\n  'Netto resultaat:   ' + d.netto_resultaat + '\\n\\n' +\n  'Met vriendelijke groet,\\n' + bedrijfsnaam + '\\n\\n' +\n  '(Dit is een geautomatiseerd systeem)';\nreturn [{ json: {...$json, email_subject: subject, email_text: text}, binary: { html_file: binary } }];\n"}},{"id":"0c21a61d","name":"HTTP: Gotenberg PDF","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1800,300],"parameters":{"method":"POST","url":"http://localhost:3000/forms/chromium/convert/html","sendBody":true,"contentType":"multipart-form-data","bodyParameters":{"parameters":[{"parameterType":"formBinaryData","name":"files","inputDataFieldName":"html_file"}]},"options":{"response":{"response":{"responseFormat":"file","outputPropertyName":"pdf_data"}}}}},{"id":"e3a5bc01","name":"Send Email: Rapport","type":"n8n-nodes-base.emailSend","typeVersion":2.1,"position":[2020,300],"credentials":{"smtp":{"id":"C2oVdFYaAOQ33IMB","name":"SMTP account"}},"parameters":{"fromEmail":"info@natuurwaarnemer.nl","toEmail":"={{ $node[\"Code: HTML Rapport\"].json.accountant_email + \",\" + $node[\"Code: HTML Rapport\"].json.email }}","subject":"={{ $node[\"Code: HTML Rapport\"].json.email_subject }}","text":"={{ $node[\"Code: HTML Rapport\"].json.email_text }}","options":{"attachments":"pdf_data","appendAttribution":false},"emailFormat":"text"}},{"id":"9baa3453","name":"HTTP: HA Status PDF","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2240,300],"parameters":{"method":"POST","url":"http://192.168.2.17:8123/api/services/input_text/set_value","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2MzAxZDY5YTI2NjY0ZjkyOWM0YTY0YzEyMzgxYjIxNSIsImlhdCI6MTc4MDUxMDUxOCwiZXhwIjoyMDk1ODcwNTE4fQ.uUPOrFdyOZHj-zvP96VT25gM7PIW6W1d63d6qnkAcHw"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"contentType":"raw","body":"{\"entity_id\": \"input_text.rapport_status\", \"value\": \"\\u2705 PDF verstuurd naar info@natuurwaarnemer.nl\"}"}},{"id":"7e82e337","name":"Respond: OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[2460,300],"parameters":{"respondWith":"json","responseBody":"{\"status\":\"ok\"}"}},{"id":"41fd19d3","name":"Code: Merge Kosten","type":"n8n-nodes-base.code","typeVersion":2,"position":[1250,300],"parameters":{"jsCode":"const prev = $node[\"Code: Merge Omzet\"].json;\nreturn [{ json: { ...prev, ...$json } }];\n"}},{"id":"c8383f5e","name":"MySQL: Instellingen","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1470,300],"credentials":{"mySql":{"id":"AdVYD86SBj0ZYuto","name":"MySQL — erp"}},"parameters":{"operation":"executeQuery","query":"SELECT\n  COALESCE(MAX(CASE WHEN `key`='bedrijfsnaam'     THEN value END),'Mijn Bedrijf') AS bedrijfsnaam,\n  COALESCE(MAX(CASE WHEN `key`='kvk'              THEN value END),'') AS kvk,\n  COALESCE(MAX(CASE WHEN `key`='iban'             THEN value END),'') AS iban,\n  COALESCE(MAX(CASE WHEN `key`='adres'            THEN value END),'') AS adres,\n  COALESCE(MAX(CASE WHEN `key`='postcode'         THEN value END),'') AS postcode,\n  COALESCE(MAX(CASE WHEN `key`='stad'             THEN value END),'') AS stad,\n  COALESCE(MAX(CASE WHEN `key`='email'            THEN value END),'') AS email,\n  COALESCE(MAX(CASE WHEN `key`='telefoon'         THEN value END),'') AS telefoon,\n  COALESCE(MAX(CASE WHEN `key`='btw_nummer'       THEN value END),'') AS btw_nummer,\n  COALESCE(MAX(CASE WHEN `key`='accountant_email' THEN value END),'') AS accountant_email,\n  COALESCE(MAX(CASE WHEN `key`='logo_url'         THEN value END),'') AS logo_url\nFROM settings\n"}},{"id":"be2c1085","name":"Code: PDF bestandsnaam","type":"n8n-nodes-base.code","typeVersion":2,"position":[1910,300],"parameters":{"jsCode":"const item = $input.first();\nconst label = $node['Code: Bereken'].json.periode_label || 'rapport';\nconst filename = 'Rapport-' + label.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf';\nif (item.binary && item.binary.pdf_data) {\n  item.binary.pdf_data.fileName = filename;\n}\nreturn [item];\n"}}],"connections":{"Webhook: rapport-pdf":{"main":[[{"node":"Code: Parse Periode","type":"main","index":0}]]},"Code: Parse Periode":{"main":[[{"node":"MySQL: Omzet","type":"main","index":0}]]},"MySQL: Omzet":{"main":[[{"node":"Code: Merge Omzet","type":"main","index":0}]]},"Code: Merge Omzet":{"main":[[{"node":"MySQL: Kosten","type":"main","index":0}]]},"MySQL: Kosten":{"main":[[{"node":"Code: Merge Kosten","type":"main","index":0}]]},"Code: Bereken":{"main":[[{"node":"MySQL: Instellingen","type":"main","index":0}]]},"Code: HTML Rapport":{"main":[[{"node":"HTTP: Gotenberg PDF","type":"main","index":0}]]},"HTTP: Gotenberg PDF":{"main":[[{"node":"Code: PDF bestandsnaam","type":"main","index":0}]]},"Send Email: Rapport":{"main":[[{"node":"HTTP: HA Status PDF","type":"main","index":0}]]},"HTTP: HA Status PDF":{"main":[[{"node":"Respond: OK","type":"main","index":0}]]},"Code: Merge Kosten":{"main":[[{"node":"Code: Bereken","type":"main","index":0}]]},"MySQL: Instellingen":{"main":[[{"node":"Code: HTML Rapport","type":"main","index":0}]]},"Code: PDF bestandsnaam":{"main":[[{"node":"Send Email: Rapport","type":"main","index":0}]]}},"authors":"Ruud Hogenberg","name":null,"description":null,"autosaved":false,"workflowPublishHistory":[{"createdAt":"2026-06-07T11:38:46.846Z","id":441,"workflowId":"i5CUhIajAGxyP3vG","versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","event":"activated","userId":"4e4dfe16-eb75-4c88-ac33-b7c362667bc3"},{"createdAt":"2026-06-07T11:38:47.024Z","id":443,"workflowId":"i5CUhIajAGxyP3vG","versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","event":"activated","userId":"4e4dfe16-eb75-4c88-ac33-b7c362667bc3"},{"createdAt":"2026-06-07T11:38:46.781Z","id":440,"workflowId":"i5CUhIajAGxyP3vG","versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","event":"deactivated","userId":"4e4dfe16-eb75-4c88-ac33-b7c362667bc3"},{"createdAt":"2026-06-07T11:38:46.964Z","id":442,"workflowId":"i5CUhIajAGxyP3vG","versionId":"aa281ced-18b4-4091-a4cb-e85573d0f571","event":"deactivated","userId":"4e4dfe16-eb75-4c88-ac33-b7c362667bc3"}]}}
+{
+  "updatedAt": "2026-06-12T20:52:01.689Z",
+  "createdAt": "2026-06-07T07:45:14.639Z",
+  "id": "i5CUhIajAGxyP3vG",
+  "name": "Rapport PDF",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "1c2a6a45",
+      "name": "Webhook: rapport-pdf",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rapport-pdf",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "rapport-pdf"
+    },
+    {
+      "id": "bf7e4327",
+      "name": "Code: Parse Periode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const input = $json.body || $json;\nconst jaar = parseInt(input.jaar) || 2025;\nconst periode = input.periode || 'Q1 (Jan-Mrt)';\nconst maanden = {\n  'Januari':1,'Februari':2,'Maart':3,'April':4,'Mei':5,'Juni':6,\n  'Juli':7,'Augustus':8,'September':9,'Oktober':10,'November':11,'December':12\n};\nlet kwartaal_nr = 0, maand_nr = 0, periode_label = '';\nif      (periode.startsWith('Q1')) { kwartaal_nr=1; periode_label=`Q1 Jan-Mrt ${jaar}`; }\nelse if (periode.startsWith('Q2')) { kwartaal_nr=2; periode_label=`Q2 Apr-Jun ${jaar}`; }\nelse if (periode.startsWith('Q3')) { kwartaal_nr=3; periode_label=`Q3 Jul-Sep ${jaar}`; }\nelse if (periode.startsWith('Q4')) { kwartaal_nr=4; periode_label=`Q4 Okt-Dec ${jaar}`; }\nelse if (periode === 'Heel jaar')   { periode_label=`Heel jaar ${jaar}`; }\nelse if (maanden[periode])         { maand_nr=maanden[periode]; periode_label=`${periode} ${jaar}`; }\nelse                               { periode_label=`${periode} ${jaar}`; }\nreturn [{ json: { jaar, kwartaal_nr, maand_nr, periode_label } }];\n"
+      }
+    },
+    {
+      "id": "bbe7fab8",
+      "name": "MySQL: Omzet",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "AdVYD86SBj0ZYuto",
+          "name": "MySQL — erp"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_9,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=0  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_0,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_9,\n  COUNT(DISTINCT i.invoice_number) AS factuur_count\nFROM invoice_items ii\nJOIN invoices i ON i.invoice_number=ii.invoice_number\nWHERE i.status='verzonden'\n  AND YEAR(i.date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(i.date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(i.date)={{ $json.maand_nr }})\n"
+      }
+    },
+    {
+      "id": "e8dbeb5a",
+      "name": "Code: Merge Omzet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const parse = $node[\"Code: Parse Periode\"].json;\nreturn [{ json: { ...parse, ...$json } }];\n"
+      }
+    },
+    {
+      "id": "5f413bab",
+      "name": "MySQL: Kosten",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1140,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "AdVYD86SBj0ZYuto",
+          "name": "MySQL — erp"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN amount ELSE 0 END),0) AS kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN amount ELSE 0 END),0) AS kosten_9,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=0  THEN amount ELSE 0 END),0) AS kosten_0,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN btw_amount ELSE 0 END),0) AS btw_kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN btw_amount ELSE 0 END),0) AS btw_kosten_9,\n  COUNT(*) AS inkoop_count\nFROM expenses\nWHERE YEAR(date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(date)={{ $json.maand_nr }})\n"
+      }
+    },
+    {
+      "id": "8872501e",
+      "name": "Code: Bereken",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nfunction fmt(val) {\n  const v = parseFloat(val||0);\n  return '€ ' + v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});\n}\nconst d = $json;\nconst o21=parseFloat(d.omzet_21||0), o9=parseFloat(d.omzet_9||0), o0=parseFloat(d.omzet_0||0);\nconst oTot=o21+o9+o0;\nconst bo21=parseFloat(d.btw_omzet_21||0), bo9=parseFloat(d.btw_omzet_9||0);\nconst boTot=bo21+bo9;\nconst k21=parseFloat(d.kosten_21||0), k9=parseFloat(d.kosten_9||0), k0=parseFloat(d.kosten_0||0);\nconst kTot=k21+k9+k0;\nconst bk21=parseFloat(d.btw_kosten_21||0), bk9=parseFloat(d.btw_kosten_9||0);\nconst bkTot=bk21+bk9;\nconst btwSaldo=boTot-bkTot;\nconst netto=oTot-kTot;\nreturn [{json:{\n  periode_label: d.periode_label,\n  factuur_count: d.factuur_count+' facturen',\n  inkoop_count:  d.inkoop_count+' boekingen',\n  omzet_21: fmt(o21), omzet_9: fmt(o9), omzet_0: fmt(o0),\n  omzet_totaal: fmt(oTot),\n  btw_omzet_21: fmt(bo21), btw_omzet_9: fmt(bo9), btw_omzet_totaal: fmt(boTot),\n  kosten_21: fmt(k21), kosten_9: fmt(k9), kosten_0: fmt(k0),\n  kosten_totaal: fmt(kTot),\n  btw_kosten_21: fmt(bk21), btw_kosten_9: fmt(bk9), btw_kosten_totaal: fmt(bkTot),\n  btw_saldo: btwSaldo>=0 ? fmt(btwSaldo)+' te betalen' : fmt(Math.abs(btwSaldo))+' terug te ontvangen',\n  netto_resultaat: netto>=0 ? fmt(netto)+' winst' : fmt(Math.abs(netto))+' verlies',\n  _o21:o21,_o9:o9,_o0:o0,_oTot:oTot,\n  _bo21:bo21,_bo9:bo9,_boTot:boTot,\n  _k21:k21,_k9:k9,_k0:k0,_kTot:kTot,\n  _bk21:bk21,_bk9:bk9,_bkTot:bkTot,\n  _btwSaldo:btwSaldo,_netto:netto\n}}];\n"
+      }
+    },
+    {
+      "id": "99c92a71",
+      "name": "Code: HTML Rapport",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const d = $node[\"Code: Bereken\"].json;\nconst LOGO_EMBEDDED=\"\";\nconst s = $json; // instellingen uit DB\nconst bedrijfsnaam = s.bedrijfsnaam || 'Mijn Bedrijf';\nconst kvk = s.kvk || '';\nconst iban = s.iban || '';\nconst email_bedrijf = s.email || '';\nconst accountant_email = s.accountant_email || 'info@example.nl';\nconst logo_url = s.logo_url || '';\n\n\nfunction eur(n){const v=parseFloat(n||0);return '&euro;&nbsp;'+v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}\nconst today=new Date();\nconst datum=today.getDate()+'-'+(today.getMonth()+1)+'-'+today.getFullYear();\nconst html=`<!DOCTYPE html>\n<html lang=\"nl\"><head><meta charset=\"UTF-8\">\n<style>\nbody{font-family:Arial,sans-serif;font-size:10pt;color:#222;margin:0;padding:20px 30px;}\n.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #2c7a2c;padding-bottom:12px;}\n.logo{font-size:16pt;font-weight:bold;color:#2c7a2c;}\n.meta{text-align:right;font-size:9pt;color:#555;}\nh1{font-size:13pt;color:#2c7a2c;margin:0 0 4px;}\nh2{font-size:10pt;color:#2c7a2c;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px;}\ntable{width:100%;border-collapse:collapse;margin-bottom:10px;}\nth{background:#2c7a2c;color:#fff;padding:5px 8px;text-align:left;font-size:9pt;}\ntd{padding:4px 8px;border-bottom:1px solid #eee;font-size:9pt;}\n.r{text-align:right;} .b{font-weight:bold;}\n.tr{background:#f0f7f0;font-weight:bold;}\n.kader{background:#e8f5e9;border:1px solid #2c7a2c;padding:8px 14px;margin:10px 0;border-radius:4px;}\n.kr{display:flex;justify-content:space-between;padding:3px 0;}\n.neg{color:#c00;}\n.footer{position:fixed;bottom:18px;left:30px;right:30px;font-size:7pt;color:#999;border-top:1px solid #ddd;padding-top:5px;text-align:center;}\n</style></head><body>\n<div class=\"hdr\">\n  <div><img src=\"${LOGO_EMBEDDED}\" style=\"max-height:70px;display:block;\">\n    <div style=\"font-size:9pt;color:#555;margin-top:4px;\">KVK: ${kvk} &nbsp;|&nbsp; IBAN: ${iban}</div></div>\n  <div class=\"meta\"><h1>Financieel Rapport</h1><div>${d.periode_label}</div><div>Gegenereerd: ${datum}</div></div>\n</div>\n<h2>Omzet (Verkopen)</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">BTW ontvangen</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._o21)}</td><td class=\"r\">${eur(d._bo21)}</td><td class=\"r\">${eur(d._o21+d._bo21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._o9)}</td><td class=\"r\">${eur(d._bo9)}</td><td class=\"r\">${eur(d._o9+d._bo9)}</td></tr>\n<tr><td>0% vrijgesteld</td><td class=\"r\">${eur(d._o0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._o0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._oTot)}</td><td class=\"r\">${eur(d._boTot)}</td><td class=\"r\">${eur(d._oTot+d._boTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.factuur_count}</div>\n<h2>Kosten / Inkopen</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">Voorbelasting</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._k21)}</td><td class=\"r\">${eur(d._bk21)}</td><td class=\"r\">${eur(d._k21+d._bk21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._k9)}</td><td class=\"r\">${eur(d._bk9)}</td><td class=\"r\">${eur(d._k9+d._bk9)}</td></tr>\n<tr><td>0% geen BTW</td><td class=\"r\">${eur(d._k0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._k0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._kTot)}</td><td class=\"r\">${eur(d._bkTot)}</td><td class=\"r\">${eur(d._kTot+d._bkTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.inkoop_count}</div>\n<h2>BTW Aangifte</h2>\n<table>\n<tr><th>Omschrijving</th><th class=\"r\">Bedrag</th></tr>\n<tr><td>BTW ontvangen (verschuldigd)</td><td class=\"r\">${eur(d._boTot)}</td></tr>\n<tr><td>BTW voorbelasting (aftrekbaar)</td><td class=\"r\">&minus;&nbsp;${eur(d._bkTot)}</td></tr>\n<tr class=\"tr\"><td class=\"b\">BTW afdracht Belastingdienst</td><td class=\"r b ${d._btwSaldo<0?'neg':''}\">${eur(d._btwSaldo)}</td></tr>\n</table>\n<h2>Netto Resultaat</h2>\n<div class=\"kader\">\n  <div class=\"kr\"><span style=\"color:#555;\">Omzet excl BTW</span><span class=\"b\">${eur(d._oTot)}</span></div>\n  <div class=\"kr\"><span style=\"color:#555;\">Kosten excl BTW</span><span class=\"b\" style=\"color:#c00;\">&minus;&nbsp;${eur(d._kTot)}</span></div>\n  <div style=\"border-top:1px solid #aaa;margin:4px 0;\"></div>\n  <div class=\"kr\"><span class=\"b\">Netto resultaat</span><span class=\"b ${d._netto<0?'neg':''}\" style=\"font-size:11pt;\">${eur(d._netto)}</span></div>\n</div>\n<div class=\"footer\">${bedrijfsnaam} &nbsp;|&nbsp; KVK ${kvk} &nbsp;|&nbsp; ${email_bedrijf} &nbsp;|&nbsp; ${d.periode_label} &nbsp;|&nbsp; ${datum}</div>\n</body></html>`;\nconst binary=await this.helpers.prepareBinaryData(Buffer.from(html,'utf8'),'index.html','text/html');\nconst subject='Financieel Rapport — '+d.periode_label;\nconst text = 'Geachte accountant,\\n\\nBijgaand stuur ik u de gevraagde gegevens voor de periode ' + d.periode_label + '.\\n\\n' +\n  'Omzet excl BTW:    ' + d.omzet_totaal + '\\n' +\n  'BTW ontvangen:     ' + d.btw_omzet_totaal + '\\n' +\n  'Kosten excl BTW:   ' + d.kosten_totaal + '\\n' +\n  'Voorbelasting:     ' + d.btw_kosten_totaal + '\\n' +\n  'BTW afdracht:      ' + d.btw_saldo + '\\n' +\n  'Netto resultaat:   ' + d.netto_resultaat + '\\n\\n' +\n  'Met vriendelijke groet,\\n' + bedrijfsnaam + '\\n\\n' +\n  '(Dit is een geautomatiseerd systeem)';\nreturn [{ json: {...$json, email_subject: subject, email_text: text}, binary: { html_file: binary } }];\n"
+      }
+    },
+    {
+      "id": "0c21a61d",
+      "name": "HTTP: Gotenberg PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "html_file"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "pdf_data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "e3a5bc01",
+      "name": "Send Email: Rapport",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2020,
+        300
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "C2oVdFYaAOQ33IMB",
+          "name": "SMTP account"
+        }
+      },
+      "parameters": {
+        "fromEmail": "info@natuurwaarnemer.nl",
+        "toEmail": "={{ $node[\"Code: HTML Rapport\"].json.accountant_email + \",\" + $node[\"Code: HTML Rapport\"].json.email }}",
+        "subject": "={{ $node[\"Code: HTML Rapport\"].json.email_subject }}",
+        "text": "={{ $node[\"Code: HTML Rapport\"].json.email_text }}",
+        "options": {
+          "attachments": "pdf_data",
+          "appendAttribution": false
+        },
+        "emailFormat": "text"
+      }
+    },
+    {
+      "id": "9baa3453",
+      "name": "HTTP: HA Status PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.2.17:8123/api/services/input_text/set_value",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2MzAxZDY5YTI2NjY0ZjkyOWM0YTY0YzEyMzgxYjIxNSIsImlhdCI6MTc4MDUxMDUxOCwiZXhwIjoyMDk1ODcwNTE4fQ.uUPOrFdyOZHj-zvP96VT25gM7PIW6W1d63d6qnkAcHw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"entity_id\": \"input_text.rapport_status\", \"value\": \"\\u2705 PDF verstuurd naar info@natuurwaarnemer.nl\"}"
+      }
+    },
+    {
+      "id": "7e82e337",
+      "name": "Respond: OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"ok\"}"
+      }
+    },
+    {
+      "id": "41fd19d3",
+      "name": "Code: Merge Kosten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const prev = $node[\"Code: Merge Omzet\"].json;\nreturn [{ json: { ...prev, ...$json } }];\n"
+      }
+    },
+    {
+      "id": "c8383f5e",
+      "name": "MySQL: Instellingen",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1470,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "AdVYD86SBj0ZYuto",
+          "name": "MySQL — erp"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COALESCE(MAX(CASE WHEN `key`='bedrijfsnaam'     THEN value END),'Mijn Bedrijf') AS bedrijfsnaam,\n  COALESCE(MAX(CASE WHEN `key`='kvk'              THEN value END),'') AS kvk,\n  COALESCE(MAX(CASE WHEN `key`='iban'             THEN value END),'') AS iban,\n  COALESCE(MAX(CASE WHEN `key`='adres'            THEN value END),'') AS adres,\n  COALESCE(MAX(CASE WHEN `key`='postcode'         THEN value END),'') AS postcode,\n  COALESCE(MAX(CASE WHEN `key`='stad'             THEN value END),'') AS stad,\n  COALESCE(MAX(CASE WHEN `key`='email'            THEN value END),'') AS email,\n  COALESCE(MAX(CASE WHEN `key`='telefoon'         THEN value END),'') AS telefoon,\n  COALESCE(MAX(CASE WHEN `key`='btw_nummer'       THEN value END),'') AS btw_nummer,\n  COALESCE(MAX(CASE WHEN `key`='accountant_email' THEN value END),'') AS accountant_email,\n  COALESCE(MAX(CASE WHEN `key`='logo_url'         THEN value END),'') AS logo_url\nFROM settings\n"
+      }
+    },
+    {
+      "id": "be2c1085",
+      "name": "Code: PDF bestandsnaam",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1910,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst label = $node['Code: Bereken'].json.periode_label || 'rapport';\nconst filename = 'Rapport-' + label.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf';\nif (item.binary && item.binary.pdf_data) {\n  item.binary.pdf_data.fileName = filename;\n}\nreturn [item];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: rapport-pdf": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Periode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Periode": {
+      "main": [
+        [
+          {
+            "node": "MySQL: Omzet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL: Omzet": {
+      "main": [
+        [
+          {
+            "node": "Code: Merge Omzet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Merge Omzet": {
+      "main": [
+        [
+          {
+            "node": "MySQL: Kosten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL: Kosten": {
+      "main": [
+        [
+          {
+            "node": "Code: Merge Kosten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Bereken": {
+      "main": [
+        [
+          {
+            "node": "MySQL: Instellingen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: HTML Rapport": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Gotenberg PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Gotenberg PDF": {
+      "main": [
+        [
+          {
+            "node": "Code: PDF bestandsnaam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email: Rapport": {
+      "main": [
+        [
+          {
+            "node": "HTTP: HA Status PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: HA Status PDF": {
+      "main": [
+        [
+          {
+            "node": "Respond: OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Merge Kosten": {
+      "main": [
+        [
+          {
+            "node": "Code: Bereken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL: Instellingen": {
+      "main": [
+        [
+          {
+            "node": "Code: HTML Rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: PDF bestandsnaam": {
+      "main": [
+        [
+          {
+            "node": "Send Email: Rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "66c3c3f5-5a0c-4e80-918e-e3ad1386ed6a",
+  "activeVersionId": "66c3c3f5-5a0c-4e80-918e-e3ad1386ed6a",
+  "versionCounter": 80,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-07T07:45:14.648Z",
+      "createdAt": "2026-06-07T07:45:14.648Z",
+      "role": "workflow:owner",
+      "workflowId": "i5CUhIajAGxyP3vG",
+      "projectId": "m5RFSl9CcHUdb8CB",
+      "project": {
+        "updatedAt": "2026-04-21T19:10:08.086Z",
+        "createdAt": "2026-04-21T18:59:53.063Z",
+        "id": "m5RFSl9CcHUdb8CB",
+        "name": "Ruud Hogenberg <info@natuurwaarnemer.nl>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4e4dfe16-eb75-4c88-ac33-b7c362667bc3"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-06-12T20:52:01.697Z",
+    "createdAt": "2026-06-12T20:52:01.697Z",
+    "versionId": "66c3c3f5-5a0c-4e80-918e-e3ad1386ed6a",
+    "workflowId": "i5CUhIajAGxyP3vG",
+    "nodes": [
+      {
+        "id": "1c2a6a45",
+        "name": "Webhook: rapport-pdf",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1.1,
+        "position": [
+          260,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "rapport-pdf",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "rapport-pdf"
+      },
+      {
+        "id": "bf7e4327",
+        "name": "Code: Parse Periode",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const input = $json.body || $json;\nconst jaar = parseInt(input.jaar) || 2025;\nconst periode = input.periode || 'Q1 (Jan-Mrt)';\nconst maanden = {\n  'Januari':1,'Februari':2,'Maart':3,'April':4,'Mei':5,'Juni':6,\n  'Juli':7,'Augustus':8,'September':9,'Oktober':10,'November':11,'December':12\n};\nlet kwartaal_nr = 0, maand_nr = 0, periode_label = '';\nif      (periode.startsWith('Q1')) { kwartaal_nr=1; periode_label=`Q1 Jan-Mrt ${jaar}`; }\nelse if (periode.startsWith('Q2')) { kwartaal_nr=2; periode_label=`Q2 Apr-Jun ${jaar}`; }\nelse if (periode.startsWith('Q3')) { kwartaal_nr=3; periode_label=`Q3 Jul-Sep ${jaar}`; }\nelse if (periode.startsWith('Q4')) { kwartaal_nr=4; periode_label=`Q4 Okt-Dec ${jaar}`; }\nelse if (periode === 'Heel jaar')   { periode_label=`Heel jaar ${jaar}`; }\nelse if (maanden[periode])         { maand_nr=maanden[periode]; periode_label=`${periode} ${jaar}`; }\nelse                               { periode_label=`${periode} ${jaar}`; }\nreturn [{ json: { jaar, kwartaal_nr, maand_nr, periode_label } }];\n"
+        }
+      },
+      {
+        "id": "bbe7fab8",
+        "name": "MySQL: Omzet",
+        "type": "n8n-nodes-base.mySql",
+        "typeVersion": 2.4,
+        "position": [
+          700,
+          300
+        ],
+        "credentials": {
+          "mySql": {
+            "id": "AdVYD86SBj0ZYuto",
+            "name": "MySQL — erp"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_9,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=0  THEN ii.quantity*ii.unit_price ELSE 0 END),0) AS omzet_0,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=21 THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_21,\n  COALESCE(SUM(CASE WHEN ROUND(ii.btw_rate)=9  THEN ii.btw_amount ELSE 0 END),0) AS btw_omzet_9,\n  COUNT(DISTINCT i.invoice_number) AS factuur_count\nFROM invoice_items ii\nJOIN invoices i ON i.invoice_number=ii.invoice_number\nWHERE i.status='verzonden'\n  AND YEAR(i.date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(i.date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(i.date)={{ $json.maand_nr }})\n"
+        }
+      },
+      {
+        "id": "e8dbeb5a",
+        "name": "Code: Merge Omzet",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          920,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const parse = $node[\"Code: Parse Periode\"].json;\nreturn [{ json: { ...parse, ...$json } }];\n"
+        }
+      },
+      {
+        "id": "5f413bab",
+        "name": "MySQL: Kosten",
+        "type": "n8n-nodes-base.mySql",
+        "typeVersion": 2.4,
+        "position": [
+          1140,
+          300
+        ],
+        "credentials": {
+          "mySql": {
+            "id": "AdVYD86SBj0ZYuto",
+            "name": "MySQL — erp"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN amount ELSE 0 END),0) AS kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN amount ELSE 0 END),0) AS kosten_9,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=0  THEN amount ELSE 0 END),0) AS kosten_0,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=21 THEN btw_amount ELSE 0 END),0) AS btw_kosten_21,\n  COALESCE(SUM(CASE WHEN ROUND(btw_percentage)=9  THEN btw_amount ELSE 0 END),0) AS btw_kosten_9,\n  COUNT(*) AS inkoop_count\nFROM expenses\nWHERE YEAR(date)={{ $json.jaar }}\n  AND ({{ $json.kwartaal_nr }}=0 OR QUARTER(date)={{ $json.kwartaal_nr }})\n  AND ({{ $json.maand_nr }}=0 OR MONTH(date)={{ $json.maand_nr }})\n"
+        }
+      },
+      {
+        "id": "8872501e",
+        "name": "Code: Bereken",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1360,
+          300
+        ],
+        "parameters": {
+          "jsCode": "\nfunction fmt(val) {\n  const v = parseFloat(val||0);\n  return '€ ' + v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});\n}\nconst d = $json;\nconst o21=parseFloat(d.omzet_21||0), o9=parseFloat(d.omzet_9||0), o0=parseFloat(d.omzet_0||0);\nconst oTot=o21+o9+o0;\nconst bo21=parseFloat(d.btw_omzet_21||0), bo9=parseFloat(d.btw_omzet_9||0);\nconst boTot=bo21+bo9;\nconst k21=parseFloat(d.kosten_21||0), k9=parseFloat(d.kosten_9||0), k0=parseFloat(d.kosten_0||0);\nconst kTot=k21+k9+k0;\nconst bk21=parseFloat(d.btw_kosten_21||0), bk9=parseFloat(d.btw_kosten_9||0);\nconst bkTot=bk21+bk9;\nconst btwSaldo=boTot-bkTot;\nconst netto=oTot-kTot;\nreturn [{json:{\n  periode_label: d.periode_label,\n  factuur_count: d.factuur_count+' facturen',\n  inkoop_count:  d.inkoop_count+' boekingen',\n  omzet_21: fmt(o21), omzet_9: fmt(o9), omzet_0: fmt(o0),\n  omzet_totaal: fmt(oTot),\n  btw_omzet_21: fmt(bo21), btw_omzet_9: fmt(bo9), btw_omzet_totaal: fmt(boTot),\n  kosten_21: fmt(k21), kosten_9: fmt(k9), kosten_0: fmt(k0),\n  kosten_totaal: fmt(kTot),\n  btw_kosten_21: fmt(bk21), btw_kosten_9: fmt(bk9), btw_kosten_totaal: fmt(bkTot),\n  btw_saldo: btwSaldo>=0 ? fmt(btwSaldo)+' te betalen' : fmt(Math.abs(btwSaldo))+' terug te ontvangen',\n  netto_resultaat: netto>=0 ? fmt(netto)+' winst' : fmt(Math.abs(netto))+' verlies',\n  _o21:o21,_o9:o9,_o0:o0,_oTot:oTot,\n  _bo21:bo21,_bo9:bo9,_boTot:boTot,\n  _k21:k21,_k9:k9,_k0:k0,_kTot:kTot,\n  _bk21:bk21,_bk9:bk9,_bkTot:bkTot,\n  _btwSaldo:btwSaldo,_netto:netto\n}}];\n"
+        }
+      },
+      {
+        "id": "99c92a71",
+        "name": "Code: HTML Rapport",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1580,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const d = $node[\"Code: Bereken\"].json;\nconst LOGO_EMBEDDED=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAACzCAYAAAB//O7qAAAEumlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNS41LjAiPgogPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgeG1sbnM6dGlmZj0iaHR0cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iCiAgICB4bWxuczpleGlmPSJodHRwOi8vbnMuYWRvYmUuY29tL2V4aWYvMS4wLyIKICAgIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIKICAgIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyIKICAgIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIgogICAgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIKICAgdGlmZjpJbWFnZUxlbmd0aD0iMTc5IgogICB0aWZmOkltYWdlV2lkdGg9IjUwMCIKICAgdGlmZjpSZXNvbHV0aW9uVW5pdD0iMiIKICAgdGlmZjpYUmVzb2x1dGlvbj0iMzAwLzEiCiAgIHRpZmY6WVJlc29sdXRpb249IjMwMC8xIgogICBleGlmOlBpeGVsWERpbWVuc2lvbj0iNTAwIgogICBleGlmOlBpeGVsWURpbWVuc2lvbj0iMTc5IgogICBleGlmOkNvbG9yU3BhY2U9IjEiCiAgIHBob3Rvc2hvcDpDb2xvck1vZGU9IjMiCiAgIHBob3Rvc2hvcDpJQ0NQcm9maWxlPSJzUkdCIElFQzYxOTY2LTIuMSIKICAgeG1wOk1vZGlmeURhdGU9IjIw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\";\nconst s = $json; // instellingen uit DB\nconst bedrijfsnaam = s.bedrijfsnaam || 'Mijn Bedrijf';\nconst kvk = s.kvk || '';\nconst iban = s.iban || '';\nconst email_bedrijf = s.email || '';\nconst accountant_email = s.accountant_email || 'info@example.nl';\nconst logo_url = s.logo_url || '';\n\n\nfunction eur(n){const v=parseFloat(n||0);return '&euro;&nbsp;'+v.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}\nconst today=new Date();\nconst datum=today.getDate()+'-'+(today.getMonth()+1)+'-'+today.getFullYear();\nconst html=`<!DOCTYPE html>\n<html lang=\"nl\"><head><meta charset=\"UTF-8\">\n<style>\nbody{font-family:Arial,sans-serif;font-size:10pt;color:#222;margin:0;padding:20px 30px;}\n.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #2c7a2c;padding-bottom:12px;}\n.logo{font-size:16pt;font-weight:bold;color:#2c7a2c;}\n.meta{text-align:right;font-size:9pt;color:#555;}\nh1{font-size:13pt;color:#2c7a2c;margin:0 0 4px;}\nh2{font-size:10pt;color:#2c7a2c;border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px;}\ntable{width:100%;border-collapse:collapse;margin-bottom:10px;}\nth{background:#2c7a2c;color:#fff;padding:5px 8px;text-align:left;font-size:9pt;}\ntd{padding:4px 8px;border-bottom:1px solid #eee;font-size:9pt;}\n.r{text-align:right;} .b{font-weight:bold;}\n.tr{background:#f0f7f0;font-weight:bold;}\n.kader{background:#e8f5e9;border:1px solid #2c7a2c;padding:8px 14px;margin:10px 0;border-radius:4px;}\n.kr{display:flex;justify-content:space-between;padding:3px 0;}\n.neg{color:#c00;}\n.footer{position:fixed;bottom:18px;left:30px;right:30px;font-size:7pt;color:#999;border-top:1px solid #ddd;padding-top:5px;text-align:center;}\n</style></head><body>\n<div class=\"hdr\">\n  <div><img src=\"${LOGO_EMBEDDED}\" style=\"max-height:70px;display:block;\">\n    <div style=\"font-size:9pt;color:#555;margin-top:4px;\">KVK: ${kvk} &nbsp;|&nbsp; IBAN: ${iban}</div></div>\n  <div class=\"meta\"><h1>Financieel Rapport</h1><div>${d.periode_label}</div><div>Gegenereerd: ${datum}</div></div>\n</div>\n<h2>Omzet (Verkopen)</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">BTW ontvangen</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._o21)}</td><td class=\"r\">${eur(d._bo21)}</td><td class=\"r\">${eur(d._o21+d._bo21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._o9)}</td><td class=\"r\">${eur(d._bo9)}</td><td class=\"r\">${eur(d._o9+d._bo9)}</td></tr>\n<tr><td>0% vrijgesteld</td><td class=\"r\">${eur(d._o0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._o0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._oTot)}</td><td class=\"r\">${eur(d._boTot)}</td><td class=\"r\">${eur(d._oTot+d._boTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.factuur_count}</div>\n<h2>Kosten / Inkopen</h2>\n<table>\n<tr><th>BTW-tarief</th><th class=\"r\">Excl BTW</th><th class=\"r\">Voorbelasting</th><th class=\"r\">Incl BTW</th></tr>\n<tr><td>21% hoog tarief</td><td class=\"r\">${eur(d._k21)}</td><td class=\"r\">${eur(d._bk21)}</td><td class=\"r\">${eur(d._k21+d._bk21)}</td></tr>\n<tr><td>9% laag tarief</td><td class=\"r\">${eur(d._k9)}</td><td class=\"r\">${eur(d._bk9)}</td><td class=\"r\">${eur(d._k9+d._bk9)}</td></tr>\n<tr><td>0% geen BTW</td><td class=\"r\">${eur(d._k0)}</td><td class=\"r\">&euro;&nbsp;-</td><td class=\"r\">${eur(d._k0)}</td></tr>\n<tr class=\"tr\"><td>Totaal</td><td class=\"r\">${eur(d._kTot)}</td><td class=\"r\">${eur(d._bkTot)}</td><td class=\"r\">${eur(d._kTot+d._bkTot)}</td></tr>\n</table>\n<div style=\"font-size:8pt;color:#777;\">${d.inkoop_count}</div>\n<h2>BTW Aangifte</h2>\n<table>\n<tr><th>Omschrijving</th><th class=\"r\">Bedrag</th></tr>\n<tr><td>BTW ontvangen (verschuldigd)</td><td class=\"r\">${eur(d._boTot)}</td></tr>\n<tr><td>BTW voorbelasting (aftrekbaar)</td><td class=\"r\">&minus;&nbsp;${eur(d._bkTot)}</td></tr>\n<tr class=\"tr\"><td class=\"b\">BTW afdracht Belastingdienst</td><td class=\"r b ${d._btwSaldo<0?'neg':''}\">${eur(d._btwSaldo)}</td></tr>\n</table>\n<h2>Netto Resultaat</h2>\n<div class=\"kader\">\n  <div class=\"kr\"><span style=\"color:#555;\">Omzet excl BTW</span><span class=\"b\">${eur(d._oTot)}</span></div>\n  <div class=\"kr\"><span style=\"color:#555;\">Kosten excl BTW</span><span class=\"b\" style=\"color:#c00;\">&minus;&nbsp;${eur(d._kTot)}</span></div>\n  <div style=\"border-top:1px solid #aaa;margin:4px 0;\"></div>\n  <div class=\"kr\"><span class=\"b\">Netto resultaat</span><span class=\"b ${d._netto<0?'neg':''}\" style=\"font-size:11pt;\">${eur(d._netto)}</span></div>\n</div>\n<div class=\"footer\">${bedrijfsnaam} &nbsp;|&nbsp; KVK ${kvk} &nbsp;|&nbsp; ${email_bedrijf} &nbsp;|&nbsp; ${d.periode_label} &nbsp;|&nbsp; ${datum}</div>\n</body></html>`;\nconst binary=await this.helpers.prepareBinaryData(Buffer.from(html,'utf8'),'index.html','text/html');\nconst subject='Financieel Rapport — '+d.periode_label;\nconst text = 'Geachte accountant,\\n\\nBijgaand stuur ik u de gevraagde gegevens voor de periode ' + d.periode_label + '.\\n\\n' +\n  'Omzet excl BTW:    ' + d.omzet_totaal + '\\n' +\n  'BTW ontvangen:     ' + d.btw_omzet_totaal + '\\n' +\n  'Kosten excl BTW:   ' + d.kosten_totaal + '\\n' +\n  'Voorbelasting:     ' + d.btw_kosten_totaal + '\\n' +\n  'BTW afdracht:      ' + d.btw_saldo + '\\n' +\n  'Netto resultaat:   ' + d.netto_resultaat + '\\n\\n' +\n  'Met vriendelijke groet,\\n' + bedrijfsnaam + '\\n\\n' +\n  '(Dit is een geautomatiseerd systeem)';\nreturn [{ json: {...$json, email_subject: subject, email_text: text}, binary: { html_file: binary } }];\n"
+        }
+      },
+      {
+        "id": "0c21a61d",
+        "name": "HTTP: Gotenberg PDF",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1800,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://localhost:3000/forms/chromium/convert/html",
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "parameterType": "formBinaryData",
+                "name": "files",
+                "inputDataFieldName": "html_file"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file",
+                "outputPropertyName": "pdf_data"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "e3a5bc01",
+        "name": "Send Email: Rapport",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          2020,
+          300
+        ],
+        "credentials": {
+          "smtp": {
+            "id": "C2oVdFYaAOQ33IMB",
+            "name": "SMTP account"
+          }
+        },
+        "parameters": {
+          "fromEmail": "info@natuurwaarnemer.nl",
+          "toEmail": "={{ $node[\"Code: HTML Rapport\"].json.accountant_email + \",\" + $node[\"Code: HTML Rapport\"].json.email }}",
+          "subject": "={{ $node[\"Code: HTML Rapport\"].json.email_subject }}",
+          "text": "={{ $node[\"Code: HTML Rapport\"].json.email_text }}",
+          "options": {
+            "attachments": "pdf_data",
+            "appendAttribution": false
+          },
+          "emailFormat": "text"
+        }
+      },
+      {
+        "id": "9baa3453",
+        "name": "HTTP: HA Status PDF",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2240,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://192.168.2.17:8123/api/services/input_text/set_value",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2MzAxZDY5YTI2NjY0ZjkyOWM0YTY0YzEyMzgxYjIxNSIsImlhdCI6MTc4MDUxMDUxOCwiZXhwIjoyMDk1ODcwNTE4fQ.uUPOrFdyOZHj-zvP96VT25gM7PIW6W1d63d6qnkAcHw"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "body": "{\"entity_id\": \"input_text.rapport_status\", \"value\": \"\\u2705 PDF verstuurd naar info@natuurwaarnemer.nl\"}"
+        }
+      },
+      {
+        "id": "7e82e337",
+        "name": "Respond: OK",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          2460,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "{\"status\":\"ok\"}"
+        }
+      },
+      {
+        "id": "41fd19d3",
+        "name": "Code: Merge Kosten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1250,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const prev = $node[\"Code: Merge Omzet\"].json;\nreturn [{ json: { ...prev, ...$json } }];\n"
+        }
+      },
+      {
+        "id": "c8383f5e",
+        "name": "MySQL: Instellingen",
+        "type": "n8n-nodes-base.mySql",
+        "typeVersion": 2.4,
+        "position": [
+          1470,
+          300
+        ],
+        "credentials": {
+          "mySql": {
+            "id": "AdVYD86SBj0ZYuto",
+            "name": "MySQL — erp"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  COALESCE(MAX(CASE WHEN `key`='bedrijfsnaam'     THEN value END),'Mijn Bedrijf') AS bedrijfsnaam,\n  COALESCE(MAX(CASE WHEN `key`='kvk'              THEN value END),'') AS kvk,\n  COALESCE(MAX(CASE WHEN `key`='iban'             THEN value END),'') AS iban,\n  COALESCE(MAX(CASE WHEN `key`='adres'            THEN value END),'') AS adres,\n  COALESCE(MAX(CASE WHEN `key`='postcode'         THEN value END),'') AS postcode,\n  COALESCE(MAX(CASE WHEN `key`='stad'             THEN value END),'') AS stad,\n  COALESCE(MAX(CASE WHEN `key`='email'            THEN value END),'') AS email,\n  COALESCE(MAX(CASE WHEN `key`='telefoon'         THEN value END),'') AS telefoon,\n  COALESCE(MAX(CASE WHEN `key`='btw_nummer'       THEN value END),'') AS btw_nummer,\n  COALESCE(MAX(CASE WHEN `key`='accountant_email' THEN value END),'') AS accountant_email,\n  COALESCE(MAX(CASE WHEN `key`='logo_url'         THEN value END),'') AS logo_url\nFROM settings\n"
+        }
+      },
+      {
+        "id": "be2c1085",
+        "name": "Code: PDF bestandsnaam",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1910,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.first();\nconst label = $node['Code: Bereken'].json.periode_label || 'rapport';\nconst filename = 'Rapport-' + label.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf';\nif (item.binary && item.binary.pdf_data) {\n  item.binary.pdf_data.fileName = filename;\n}\nreturn [item];\n"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook: rapport-pdf": {
+        "main": [
+          [
+            {
+              "node": "Code: Parse Periode",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: Parse Periode": {
+        "main": [
+          [
+            {
+              "node": "MySQL: Omzet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MySQL: Omzet": {
+        "main": [
+          [
+            {
+              "node": "Code: Merge Omzet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: Merge Omzet": {
+        "main": [
+          [
+            {
+              "node": "MySQL: Kosten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MySQL: Kosten": {
+        "main": [
+          [
+            {
+              "node": "Code: Merge Kosten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: Bereken": {
+        "main": [
+          [
+            {
+              "node": "MySQL: Instellingen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: HTML Rapport": {
+        "main": [
+          [
+            {
+              "node": "HTTP: Gotenberg PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP: Gotenberg PDF": {
+        "main": [
+          [
+            {
+              "node": "Code: PDF bestandsnaam",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email: Rapport": {
+        "main": [
+          [
+            {
+              "node": "HTTP: HA Status PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP: HA Status PDF": {
+        "main": [
+          [
+            {
+              "node": "Respond: OK",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: Merge Kosten": {
+        "main": [
+          [
+            {
+              "node": "Code: Bereken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MySQL: Instellingen": {
+        "main": [
+          [
+            {
+              "node": "Code: HTML Rapport",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: PDF bestandsnaam": {
+        "main": [
+          [
+            {
+              "node": "Send Email: Rapport",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Ruud Hogenberg",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-06-12T20:52:02.206Z",
+        "id": 496,
+        "workflowId": "i5CUhIajAGxyP3vG",
+        "versionId": "66c3c3f5-5a0c-4e80-918e-e3ad1386ed6a",
+        "event": "activated",
+        "userId": "4e4dfe16-eb75-4c88-ac33-b7c362667bc3"
+      },
+      {
+        "createdAt": "2026-06-12T20:52:02.041Z",
+        "id": 495,
+        "workflowId": "i5CUhIajAGxyP3vG",
+        "versionId": "66c3c3f5-5a0c-4e80-918e-e3ad1386ed6a",
+        "event": "deactivated",
+        "userId": "4e4dfe16-eb75-4c88-ac33-b7c362667bc3"
+      }
+    ]
+  }
+}
