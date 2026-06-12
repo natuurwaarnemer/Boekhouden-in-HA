@@ -29,10 +29,10 @@ Facturen maken, inkopen boeken, BTW-rapport, winst & verlies — alles vanuit je
 
 ---
 
-## Snelle installatie (nieuwe server)
+## Snelle installatie
 
 ### Vereisten
-- Ubuntu 24.04 LTS (verse installatie)
+- Ubuntu 22.04 of 24.04 LTS — fysieke machine, VM, VPS of Proxmox container
 - Home Assistant OS al geïnstalleerd en bereikbaar op het netwerk
 - Een HA Long-Lived Access Token (zie stap 1 hieronder)
 
