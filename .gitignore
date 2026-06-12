@@ -33,3 +33,9 @@ sql/*
 !dashboard/
 dashboard/*
 !dashboard/*.json
+
+# Serverconfiguratie
+!server/
+server/*
+!server/*.service
+!server/*.env

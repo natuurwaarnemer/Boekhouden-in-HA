@@ -1,0 +1,23 @@
+[Unit]
+Description=n8n
+After=network.target
+
+[Service]
+Type=simple
+User=natuurwaarnemer
+ExecStart=/usr/bin/n8n start
+Restart=on-failure
+Environment=N8N_PORT=5678
+Environment=N8N_PROTOCOL=http
+Environment=N8N_HOST=0.0.0.0
+Environment=N8N_SECURE_COOKIE=false
+Environment=N8N_BASIC_AUTH_ACTIVE=true
+Environment=N8N_BASIC_AUTH_USER=natuurwaarnemer
+Environment=N8N_BASIC_AUTH_PASSWORD=CHANGE_ME
+Environment=N8N_ALLOW_EXEC=true
+Environment=GENERIC_TIMEZONE=Europe/Amsterdam
+Environment=TZ=Europe/Amsterdam
+EnvironmentFile=/home/natuurwaarnemer/.n8n/pruning.env
+
+[Install]
+WantedBy=multi-user.target
