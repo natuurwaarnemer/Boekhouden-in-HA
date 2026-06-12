@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   id                INT AUTO_INCREMENT PRIMARY KEY,
   date              DATE           NOT NULL,
   supplier          VARCHAR(100)   DEFAULT '',
+  invoice_number    VARCHAR(50)    DEFAULT '',
   description       VARCHAR(255)   NOT NULL,
   amount            DECIMAL(10,2)  DEFAULT 0.00,
   btw_percentage    DECIMAL(5,2)   DEFAULT 21.00,
@@ -132,8 +133,10 @@ CREATE TABLE IF NOT EXISTS expenses (
   ledger_account_id INT            DEFAULT NULL,
   created_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (ledger_account_id) REFERENCES ledger_accounts(id) ON DELETE SET NULL
-  -- Geen invoice_number kolom
 );
+
+-- Migratie: voeg invoice_number toe aan bestaande databases
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(50) DEFAULT '' AFTER supplier;
 
 -- -------------------------------------------------------------
 -- Grootboekboekingen
