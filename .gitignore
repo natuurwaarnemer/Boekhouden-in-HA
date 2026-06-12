@@ -39,3 +39,6 @@ dashboard/*
 server/*
 !server/*.service
 !server/*.env
+
+# Installatiescript
+!install.sh
