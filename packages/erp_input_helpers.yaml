@@ -38,6 +38,7 @@ rest_command:
     payload: >
       {
         "factuurnummer":  "{{ states('input_text.factuur_huidig_nummer') }}",
+        "datum":          "{{ states('input_text.factuur_datum') }}",
         "project":        "{{ states('input_text.factuur_project') }}",
         "notities":       "{{ states('input_text.factuur_notities') }}",
         "omschrijving1":  "{{ states('input_text.factuur_regel1_omschrijving') }}",
@@ -113,6 +114,7 @@ rest_command:
     payload: >
       {
         "klant":          "{{ states('input_select.factuur_klant') }}",
+        "datum":          "{{ states('input_text.factuur_datum') }}",
         "project":        "{{ states('input_text.factuur_project') }}",
         "grootboek":      "{{ states('input_select.factuur_grootboek') }}",
         "omschrijving1":  "{{ states('input_text.factuur_regel1_omschrijving') }}",
@@ -321,6 +323,7 @@ automation:
         target:
           entity_id:
             - input_text.factuur_huidig_nummer
+            - input_text.factuur_datum
             - input_text.factuur_notities
             - input_text.factuur_regel1_omschrijving
             - input_text.factuur_regel2_omschrijving
@@ -1023,6 +1026,7 @@ automation:
               - service: input_text.set_value
                 target:
                   entity_id:
+                    - input_text.factuur_datum
                     - input_text.factuur_project
                     - input_text.factuur_regel1_omschrijving
                     - input_text.factuur_regel2_omschrijving
@@ -1269,6 +1273,11 @@ input_text:
     max: 20
     initial: ""
     icon: mdi:pound
+  factuur_datum:
+    name: "Factuurdatum (DD-MM-JJJJ)"
+    max: 10
+    initial: ""
+    icon: mdi:calendar
   inkoop_huidig_id:
     name: Huidig inkoop ID
     max: 20
@@ -1997,6 +2006,7 @@ script:
     mode: single
     fields:
       factuurnummer: {description: Factuurnummer}
+      datum:         {description: Factuurdatum DD-MM-JJJJ}
       project:       {description: Project}
       notities:      {description: Notities}
       omschrijving1: {description: Omschrijving regel 1}
@@ -2015,6 +2025,9 @@ script:
       - service: input_text.set_value
         target: {entity_id: input_text.factuur_huidig_nummer}
         data: {value: "{{ factuurnummer }}"}
+      - service: input_text.set_value
+        target: {entity_id: input_text.factuur_datum}
+        data: {value: "{{ datum | default('') }}"}
       - service: input_text.set_value
         target: {entity_id: input_text.factuur_project}
         data: {value: "{{ project | default('') }}"}
