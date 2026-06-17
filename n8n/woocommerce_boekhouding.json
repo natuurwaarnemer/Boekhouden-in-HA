@@ -194,7 +194,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id FROM invoices WHERE notes = CONCAT('WooCommerce order #', {{ ($node['Webhook: WooCommerce Order'].json.body || $node['Webhook: WooCommerce Order'].json).number }}) LIMIT 1",
+        "query": "SELECT MAX(id) as id FROM invoices WHERE notes = CONCAT('WooCommerce order #', {{ ($node['Webhook: WooCommerce Order'].json.body || $node['Webhook: WooCommerce Order'].json).number }})",
         "options": {}
       },
       "name": "MySQL: Check dubbel",
