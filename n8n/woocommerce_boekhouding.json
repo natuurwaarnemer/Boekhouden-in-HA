@@ -1,5 +1,5 @@
 {
-  "name": "WooCommerce → Boekhouding",
+  "name": "WooCommerce \u2192 Boekhouding",
   "nodes": [
     {
       "parameters": {
@@ -55,7 +55,7 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "b2d81815-b76e-45fd-992f-21282857c0b8"
@@ -76,7 +76,7 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "f7f97956-00ff-4d44-b0e7-5ea3cdea7f8c"
@@ -97,14 +97,14 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "b6bba382-9602-412f-820b-23780efc18f6"
     },
     {
       "parameters": {
-        "functionCode": "\nconst order = $node['Webhook: WooCommerce Order'].json.body || $node['Webhook: WooCommerce Order'].json;\nconst customerId = $node['MySQL: Webklanten ophalen'].json.id;\nconst counter = $node['MySQL: Teller ophalen'].json.invoice_counter || '1';\nconst year = new Date().getFullYear();\nconst num = String(counter).padStart(4, '0');\nconst invoice_number = `F${year}-${num}`;\n\nconst total    = Math.round((parseFloat(order.total) || 0) * 100) / 100;\nconst totalTax = Math.round((parseFloat(order.total_tax) || 0) * 100) / 100;\nconst subtotal = Math.round((total - totalTax) * 100) / 100;\n\nconst today = (order.date_paid || order.date_created || new Date().toISOString()).split('T')[0];\n\n// Regelitems\nconst lineItems     = order.line_items || [];\nconst shippingTotal = parseFloat(order.shipping_total) || 0;\nconst shippingTax   = parseFloat(order.shipping_tax) || 0;\n\nconst regels = lineItems.map(item => {\n  const qty       = parseFloat(item.quantity) || 1;\n  const itemTotal = parseFloat(item.total) || 0;\n  const itemTax   = parseFloat(item.total_tax) || 0;\n  const unitPrice = Math.round((itemTotal / qty) * 100) / 100;\n  const btw_rate  = itemTotal > 0 ? Math.round(itemTax / itemTotal * 100) : 21;\n  return {\n    description: item.name,\n    quantity:    qty,\n    unit_price:  unitPrice,\n    btw_rate:    btw_rate,\n    btw_amount:  Math.round(itemTax * 100) / 100,\n    total:       Math.round((itemTotal + itemTax) * 100) / 100\n  };\n});\n\nif (shippingTotal > 0) {\n  const btwRate = shippingTax > 0 ? Math.round(shippingTax / shippingTotal * 100) : 21;\n  regels.push({\n    description: 'Verzendkosten',\n    quantity:    1,\n    unit_price:  shippingTotal,\n    btw_rate:    btwRate,\n    btw_amount:  Math.round(shippingTax * 100) / 100,\n    total:       Math.round((shippingTotal + shippingTax) * 100) / 100\n  });\n}\n\n\n// Omzet grootboek bepalen op basis van land\nconst country = (order.billing && order.billing.country) ? order.billing.country.toUpperCase() : 'NL';\nconst euCountries = [\"AT\", \"BE\", \"BG\", \"CY\", \"CZ\", \"DE\", \"DK\", \"EE\", \"ES\", \"FI\", \"FR\", \"GR\", \"HR\", \"HU\", \"IE\", \"IT\", \"LT\", \"LU\", \"LV\", \"MT\", \"PL\", \"PT\", \"RO\", \"SE\", \"SI\", \"SK\"];\nlet omzetCode;\nif (country === 'NL') {\n  omzetCode = '8000';\n} else if (euCountries.includes(country)) {\n  omzetCode = '8010';\n} else {\n  omzetCode = '8020';\n}\n\nreturn [{ json: {\n  invoice_number,\n  omzet_code: omzetCode,\n  customer_id:   customerId,\n  invoice_date:  today,\n  due_date:      today,\n  subtotal,\n  btw_total:     totalTax,\n  total,\n  notes: `WooCommerce order #${order.number || order.id}`,\n  regels\n}}];\n"
+        "functionCode": "\nconst order = $node['Webhook: WooCommerce Order'].json.body || $node['Webhook: WooCommerce Order'].json;\nconst customerId = $node['MySQL: Webklanten ophalen'].json.id;\nconst counter = $node['MySQL: Teller ophalen'].json.invoice_counter || '1';\nconst year = new Date().getFullYear();\nconst num = String(counter).padStart(4, '0');\nconst invoice_number = `F${year}-${num}`;\n\nconst total    = Math.round((parseFloat(order.total) || 0) * 100) / 100;\nconst totalTax = Math.round((parseFloat(order.total_tax) || 0) * 100) / 100;\nconst subtotal = Math.round((total - totalTax) * 100) / 100;\n\nconst today = (order.date_paid || order.date_created || new Date().toISOString()).split('T')[0];\n\n// Regelitems\nconst lineItems     = order.line_items || [];\nconst shippingTotal = parseFloat(order.shipping_total) || 0;\nconst shippingTax   = parseFloat(order.shipping_tax) || 0;\n\nconst regels = lineItems.map(item => {\n  const qty       = parseFloat(item.quantity) || 1;\n  const itemTotal = parseFloat(item.total) || 0;\n  const itemTax   = parseFloat(item.total_tax) || 0;\n  const unitPrice = Math.round((itemTotal / qty) * 100) / 100;\n  const btw_rate  = itemTotal > 0 ? Math.round(itemTax / itemTotal * 100) : 21;\n  return {\n    description:     item.name,\n    artikel_nummer:  item.sku || '',\n    quantity:        qty,\n    unit_price:      unitPrice,\n    btw_rate:        btw_rate,\n    btw_amount:      Math.round(itemTax * 100) / 100,\n    total:           Math.round((itemTotal + itemTax) * 100) / 100\n  };\n});\n\nif (shippingTotal > 0) {\n  const btwRate = shippingTax > 0 ? Math.round(shippingTax / shippingTotal * 100) : 21;\n  regels.push({\n    description: 'Verzendkosten',\n    quantity:    1,\n    unit_price:  shippingTotal,\n    btw_rate:    btwRate,\n    btw_amount:  Math.round(shippingTax * 100) / 100,\n    total:       Math.round((shippingTotal + shippingTax) * 100) / 100\n  });\n}\n\n\n// Omzet grootboek bepalen op basis van land\nconst country = (order.billing && order.billing.country) ? order.billing.country.toUpperCase() : 'NL';\nconst euCountries = [\"AT\", \"BE\", \"BG\", \"CY\", \"CZ\", \"DE\", \"DK\", \"EE\", \"ES\", \"FI\", \"FR\", \"GR\", \"HR\", \"HU\", \"IE\", \"IT\", \"LT\", \"LU\", \"LV\", \"MT\", \"PL\", \"PT\", \"RO\", \"SE\", \"SI\", \"SK\"];\nlet omzetCode;\nif (country === 'NL') {\n  omzetCode = '8000';\n} else if (euCountries.includes(country)) {\n  omzetCode = '8010';\n} else {\n  omzetCode = '8020';\n}\n\nreturn [{ json: {\n  invoice_number,\n  omzet_code: omzetCode,\n  customer_id:   customerId,\n  invoice_date:  today,\n  due_date:      today,\n  subtotal,\n  btw_total:     totalTax,\n  total,\n  notes: `WooCommerce order #${order.number || order.id}`,\n  regels\n}}];\n"
       },
       "name": "Function: Data samenvoegen",
       "type": "n8n-nodes-base.function",
@@ -131,14 +131,14 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "478c973f-82e2-4395-9995-69cdc986d631"
     },
     {
       "parameters": {
-        "functionCode": "\nconst data  = $node['Function: Data samenvoegen'].json;\nconst inv   = data.invoice_number;\nconst regels = data.regels;\n\nconst values = regels.map(r => {\n  const desc = r.description.replace(/'/g, \"''\");\n  return `('${inv}', '${desc}', ${r.quantity}, ${r.unit_price}, ${r.btw_rate}, ${r.btw_amount}, ${r.total})`;\n}).join(',\\n');\n\nconst query = `INSERT INTO invoice_items (invoice_number, description, quantity, unit_price, btw_rate, btw_amount, total) VALUES\\n${values}`;\nreturn [{ json: { query } }];\n"
+        "functionCode": "\nconst data  = $node['Function: Data samenvoegen'].json;\nconst inv   = data.invoice_number;\nconst regels = data.regels;\n\nconst values = regels.map(r => {\n  const desc = r.description.replace(/'/g, \"''\");\n  const sku  = (r.artikel_nummer || '').replace(/'/g, \"''\");\n  return `('${inv}', '${desc}', '${sku}', ${r.quantity}, ${r.unit_price}, ${r.btw_rate}, ${r.btw_amount}, ${r.total})`;\n}).join(',\\n');\n\nconst query = `INSERT INTO invoice_items (invoice_number, description, artikel_nummer, quantity, unit_price, btw_rate, btw_amount, total) VALUES\\n${values}`;\nreturn [{ json: { query } }];\n"
       },
       "name": "Function: Factuurregels SQL opbouwen",
       "type": "n8n-nodes-base.function",
@@ -165,7 +165,7 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "937d0de8-e08d-4230-9b32-43e5c74a6c06"
@@ -186,7 +186,7 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "ce4d7f04-3f74-40c9-8d6e-a16a55671691"
@@ -207,7 +207,7 @@
       "credentials": {
         "mySql": {
           "id": "AdVYD86SBj0ZYuto",
-          "name": "MySQL — erp"
+          "name": "MySQL \u2014 erp"
         }
       },
       "id": "3d8eaeba-ebbf-457a-bb85-0e8faeaac98d"
